@@ -13,6 +13,7 @@ const receiptAdviceSchema = new mongoose.Schema(
     receiptDate: { type: Date, required: true },
     receivedItems: { type: [receivedItemSchema], required: true },
     notes: { type: String },
+    xmlDocument: { type: String },
   },
   { timestamps: true }
 );
