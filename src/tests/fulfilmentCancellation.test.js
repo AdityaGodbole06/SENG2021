@@ -133,4 +133,39 @@ describe('Fulfilment Cancellation API', () => {
       expect(response.body.message).toMatch(/not found/i);
     });
   });
+
+  /**
+   * DELETE Operations
+   * Testing DELETE /fulfilment-cancellations/:id
+   */
+  describe('DELETE /fulfilment-cancellations/:id', () => {
+
+    test('should successfully delete an existing cancellation record', async () => {
+      const idToDelete = "CANC-DELETE-100";
+
+      await FulfilmentCancellation.create({
+        fulfilmentCancellationId: idToDelete,
+        dispatchAdviceId: "DA-999",
+        requestedByPartyId: "USER_ADMIN",
+        reason: "Accidental Duplicate"
+      });
+
+      const response = await request(app).delete(`/fulfilment-cancellations/${idToDelete}`);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.message).toContain('successfully deleted');
+
+      // DOUBLE CHECK: Ensure it's actually gone from the DB
+      const found = await FulfilmentCancellation.findOne({ fulfilmentCancellationId: idToDelete });
+      expect(found).toBeNull();
+    });
+
+    test('should return 404 when trying to delete a non-existent ID', async () => {
+      const response = await request(app).delete('/fulfilment-cancellations/GHOST-ID');
+      
+      expect(response.statusCode).toBe(404);
+      expect(response.body.message).toMatch(/not found/i);
+    });
+  });
+
 });
