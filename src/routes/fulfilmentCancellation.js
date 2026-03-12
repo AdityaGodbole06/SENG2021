@@ -52,4 +52,42 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /fulfilment-cancellations
+router.get('/:id', async (req, res) => {
+  try {
+    const cancellation = await FulfilmentCancellation.findOne({ 
+      fulfilmentCancellationId: req.params.id 
+    });
+
+    // If Mongoose returns null, we must send a 404
+    if (!cancellation) {
+      return res.status(404).json({ message: 'Cancellation not found' });
+    }
+
+    return res.status(200).json(cancellation);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /fulfilment-cancellations/:id
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedItem = await FulfilmentCancellation.findOneAndDelete({ 
+      fulfilmentCancellationId: req.params.id 
+    });
+
+    if (!deletedItem) {
+      return res.status(404).json({ message: 'Cancellation record not found' });
+    }
+
+    return res.status(200).json({ 
+      message: 'Cancellation record successfully deleted',
+      deletedId: deletedItem.fulfilmentCancellationId 
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
