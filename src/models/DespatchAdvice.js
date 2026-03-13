@@ -26,6 +26,7 @@ const despatchAdviceSchema = new mongoose.Schema(
       enum: ['CREATED', 'SENT', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
       default: 'CREATED',
     },
+    adjustments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OrderAdjustment' }],
   },
   { timestamps: true }
 );

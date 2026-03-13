@@ -10,10 +10,10 @@ class orderAdjustmentService {
     */
 
     async createAdjustment(data) {
-        const { despatchAdviceId, requestedByPartyId, reason, adjustments} = data;
+        const { despatchAdviceId, requestedByPartyId, reason, adjustments } = data;
 
         // Case if despatch advice doesnt exist
-        const despatchAdvice = await DespatchAdvice.findOne({ despatchAdviceId });
+        const despatchAdvice = await DespatchAdvice.findOne({ despatchAdviceId: despatchAdviceId });
         if (!despatchAdvice) {
             throw new Error(`Despatch advice ${despatchAdviceId} not found`);
         }
@@ -26,7 +26,7 @@ class orderAdjustmentService {
             throw new Error(`Despatch advice can't be adjusted on delivered orders`);
         }
 
-        this.validateAdjustments(adjustments, despatchAdvice.lineItems);
+        this.validateAdjustments(adjustments, despatchAdvice.items);
 
         // Create unique adjustment id
         const orderAdjustmentId = generateOrderAdjustmentId();
@@ -34,6 +34,7 @@ class orderAdjustmentService {
         // Make adjustments
         const adjustment = new OrderAdjustment({
             orderAdjustmentId,
+            despatchAdviceId,
             requestedByPartyId,
             reason,
             adjustments,
@@ -42,9 +43,24 @@ class orderAdjustmentService {
 
         // Add adjustment id to despatch advice
         await adjustment.save();
-        despatchAdvice.adjustment.push(adjustment._id);
+        despatchAdvice.adjustments.push(adjustment._id);
         await despatchAdvice.save();
 
         return adjustment;
     }
+
+    validateAdjustments(adjustments, items) {
+        if (!adjustments || adjustments.length === 0) {
+            throw new Error('At least one adjustment is required');
+        }
+
+        const validSkus = new Set(items.map(item => item.sku));
+        for (const adj of adjustments) {
+            if (!validSkus.has(adj.sku)) {
+                throw new Error(`SKU ${adj.sku} does not exist in the despatch advice`);
+            }
+        }
+    }
 }
+
+module.exports = orderAdjustmentService;
