@@ -5,7 +5,7 @@ const adjustmentLineSchema = new mongoose.Schema({
   field: { type: String, required: true,
     enum: ['QUANTITY', 'DESCRIPTION', 'UNIT']
    },
-  from: { type: mongoose.Schema.Type.Mixed, required: true },
+  from: { type: mongoose.Schema.Types.Mixed, required: true },
   to: { type: Number, required: true, min: 1 },
 }, { _id: false });
 

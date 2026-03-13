@@ -1,6 +1,6 @@
 const OrderAdjustment = require('../models/OrderAdjustment');
 const DespatchAdvice = require('../models/DespatchAdvice');
-const { generateOrderAdjustmentId } = require('../util/generateId');
+const { generateOrderAdjustmentId } = require('../utils/generateId');
 
 class orderAdjustmentService {
     /*
@@ -13,7 +13,7 @@ class orderAdjustmentService {
         const { despatchAdviceId, requestedByPartyId, reason, adjustments } = data;
 
         // Case if despatch advice doesnt exist
-        const despatchAdvice = await DespatchAdvice.findOne({ despatchAdviceId: despatchAdviceId });
+        const despatchAdvice = await DespatchAdvice.findOne({ dispatchAdviceId: despatchAdviceId });
         if (!despatchAdvice) {
             throw new Error(`Despatch advice ${despatchAdviceId} not found`);
         }
@@ -34,7 +34,7 @@ class orderAdjustmentService {
         // Make adjustments
         const adjustment = new OrderAdjustment({
             orderAdjustmentId,
-            despatchAdviceId,
+            dispatchAdviceId: despatchAdviceId,
             requestedByPartyId,
             reason,
             adjustments,
