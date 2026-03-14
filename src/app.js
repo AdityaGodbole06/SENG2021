@@ -21,7 +21,6 @@ app.get('/api/test', authMiddleware, (req, res) => {
     });
 });
 
-app.use('/order-Adjustments', orderAdjustmentRoutes);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server running on port ${process.env.PORT || 3000}`);
 });
