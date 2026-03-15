@@ -62,7 +62,7 @@ describe('Despatch Advice API', () => {
 
       const record = await DespatchAdvice.findOne({});
       expect(record).not.toBeNull();
-      expect(record.status).toBe('CREATED');
+      expect(record.status).toBe('SENT');
     });
 
     test.each([

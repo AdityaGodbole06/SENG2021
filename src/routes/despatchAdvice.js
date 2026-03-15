@@ -56,7 +56,7 @@ router.post('/', async (req, res) => {
     expectedDeliveryDate,
     items,
     xmlDocument,
-    status: 'CREATED',
+    status: 'SENT',
   });
 
   await despatchAdvice.save();
