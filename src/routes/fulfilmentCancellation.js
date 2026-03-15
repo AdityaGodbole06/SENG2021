@@ -3,16 +3,19 @@ const router = express.Router();
 const FulfilmentCancellation = require('../models/FulfilmentCancellation');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const Supply = require('../models/Supply')
+const { v4: uuidv4 } = require('uuid');
+
 
 // POST /fulfilment-cancellations
 router.post('/', async (req, res) => {
   try {
     const { 
-      fulfilmentCancellationId, 
       dispatchAdviceId, 
       requestedByPartyId, 
       reason 
     } = req.body;
+    
+    const fulfilmentCancellationId = `FC-${uuidv4()}`;
 
     // Mongoose will automatically trigger validation here 
     const cancellation = new FulfilmentCancellation({
@@ -53,7 +56,7 @@ router.post('/', async (req, res) => {
               availableQuantity: item.quantity
             }
           },
-          { new: true } 
+          { returnDocument: 'after' } 
         );
       }
     }
