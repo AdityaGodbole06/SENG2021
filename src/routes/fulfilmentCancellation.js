@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const FulfilmentCancellation = require('../models/FulfilmentCancellation');
 const DespatchAdvice = require('../models/DespatchAdvice');
+const Supply = require('../models/Supply')
 
 // POST /fulfilment-cancellations
 router.post('/', async (req, res) => {
@@ -32,6 +33,30 @@ router.post('/', async (req, res) => {
 
     const savedCancellation = await cancellation.save();
 
+    if (savedCancellation) {
+      const advice = await DespatchAdvice.findOne({ dispatchAdviceId });
+      
+      // Adjust Order - Mark the original advice as void or cancelled
+      advice.status = 'CANCELLED'; 
+      await advice.save();
+      
+      // Loop through items to adjust inventory (The "Adjust Supply" step)
+      for (const item of advice.items) {
+        await Supply.findOneAndUpdate(
+          { 
+            sku: item.sku, 
+            despatchPartyId: advice.despatchParty.partyId 
+          },
+          { 
+            $inc: { 
+              allocatedQuantity: -item.quantity, 
+              availableQuantity: item.quantity
+            }
+          },
+          { new: true } 
+        );
+      }
+    }
     return res.status(201).json(savedCancellation);
 
   } catch (error) {

@@ -5,6 +5,7 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const FulfilmentCancellation = require('../models/FulfilmentCancellation');
 const DespatchAdvice = require('../models/DespatchAdvice');
+const Supply = require('../models/Supply');
 const app = require('../app'); 
 
 describe('Fulfilment Cancellation API', () => {
@@ -21,6 +22,7 @@ describe('Fulfilment Cancellation API', () => {
   afterEach(async () => {
     await FulfilmentCancellation.deleteMany({});
     await DespatchAdvice.deleteMany({});
+    await Supply.deleteMany({});
   });
 
   afterAll(async () => {
@@ -41,7 +43,18 @@ describe('Fulfilment Cancellation API', () => {
     
     test('should successfully create a cancellation when linked to a valid DespatchAdvice', async () => {
       const parentId = "DA-12345"; 
+      const sku = "ITEM-A";
+      const supplierId = "SUP-01";
 
+      await Supply.create({
+        sku: sku,
+        despatchPartyId: supplierId,
+        uom: "EA",
+        totalQuantity: 100,
+        allocatedQuantity: 5,
+        availableQuantity: 95,
+        status: 'AVAILABLE'
+      });
       // Seed the required parent record
       await DespatchAdvice.create({
         dispatchAdviceId: parentId,
@@ -66,6 +79,16 @@ describe('Fulfilment Cancellation API', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.body.fulfilmentCancellationId).toBe("CANC-999");
+
+      // 4. ASSERTIONS: Check the Supply Adjustment (The "Adjust Supply Status" box)
+      const updatedSupply = await Supply.findOne({ sku, despatchPartyId: supplierId });
+      expect(updatedSupply.allocatedQuantity).toBe(0);
+      expect(updatedSupply.availableQuantity).toBe(100); 
+
+      // 5. ASSERTIONS: Check the Order Adjustment (The "Adjust Order" / Decision Action)
+      const updatedAdvice = await DespatchAdvice.findOne({ dispatchAdviceId: parentId });
+      expect(updatedAdvice.status).toBe('CANCELLED');
+
     });
 
     test('should return 404 error if the referenced dispatchAdviceId does not exist', async () => {
