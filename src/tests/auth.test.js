@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const Party = require('../models/Party');
+const { authorizeRoles } = require('../middleware/auth');
 const app = require('../app');
 
 describe('Authentication Middleware', () => {
@@ -114,6 +115,58 @@ describe('Authentication Middleware', () => {
       expect(response.statusCode).toBe(401);
     });
 
+  });
+
+  describe('authorizeRoles unit tests', () => {
+    const mockRes = () => {
+      const res = {};
+      res.status = jest.fn().mockReturnValue(res);
+      res.json = jest.fn().mockReturnValue(res);
+      return res;
+    };
+
+    test('should call next() when party has an allowed role', () => {
+      const req = { party: { partyId: 'SUP-01', role: 'DESPATCH_PARTY' } };
+      const res = mockRes();
+      const next = jest.fn();
+
+      authorizeRoles('DESPATCH_PARTY')(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    test('should return 403 when party role is not in allowed roles', () => {
+      const req = { party: { partyId: 'WH-01', role: 'DELIVERY_PARTY' } };
+      const res = mockRes();
+      const next = jest.fn();
+
+      authorizeRoles('DESPATCH_PARTY')(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('should return 401 when req.party is not set', () => {
+      const req = {};
+      const res = mockRes();
+      const next = jest.fn();
+
+      authorizeRoles('DESPATCH_PARTY')(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('should allow multiple roles', () => {
+      const req = { party: { partyId: 'WH-01', role: 'DELIVERY_PARTY' } };
+      const res = mockRes();
+      const next = jest.fn();
+
+      authorizeRoles('DESPATCH_PARTY', 'DELIVERY_PARTY')(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
   });
 
 });

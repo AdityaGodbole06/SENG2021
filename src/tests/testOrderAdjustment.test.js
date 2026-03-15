@@ -165,7 +165,7 @@ describe('Test Order Adjustment API', () => {
             expect(res.statusCode).toBe(400);
         });
 
-        test('Adjustment "to" value less than 1, return 400', async () => {
+        test('Adjustment "to" value of 0 is valid (receiving zero items), return 201', async () => {
             await seedDespatch();
 
             const res = await request(app)
@@ -173,7 +173,7 @@ describe('Test Order Adjustment API', () => {
                 .set('Authorization', AUTH_HEADER)
                 .send({ ...validBody, adjustments: [{ sku: 'SKU-123', field: 'QUANTITY', from: 10, to: 0 }] });
 
-            expect(res.statusCode).toBe(400);
+            expect(res.statusCode).toBe(201);
         });
     });
 
