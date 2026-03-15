@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/models/DespatchAdvice.js</title>
+    <title>Code coverage report for src/routes/orderAdjustmentRoute.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/models</a> DespatchAdvice.js</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/routes</a> orderAdjustmentRoute.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">94.44% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>17/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">94.44% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>17/18</span>
             </div>
         
             
@@ -94,78 +94,69 @@
 <a name='L29'></a><a href='#L29'>29</a>
 <a name='L30'></a><a href='#L30'>30</a>
 <a name='L31'></a><a href='#L31'>31</a>
-<a name='L32'></a><a href='#L32'>32</a>
-<a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<a name='L32'></a><a href='#L32'>32</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const mongoose = require('mongoose');
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span></td><td class="text"><pre class="prettyprint lang-js">const express = require('express');
+const router = express.Router();
+const OrderAdjustment = require('../models/OrderAdjustment');
+const orderAdjustmentService = require('../services/orderAdjustmentService');
 &nbsp;
-const partySchema = new mongoose.Schema({
-  partyId: { type: String, required: true },
-  name: { type: String, required: true },
-}, { _id: false });
+const service = new orderAdjustmentService();
 &nbsp;
-const lineItemSchema = new mongoose.Schema({
-  sku: { type: String, required: true },
-  description: { type: String },
-  quantity: { type: Number, required: true, min: 1 },
-  uom: { type: String, required: true },
-}, { _id: false });
+// POST /order-adjustment
+router.post('/', async (req, res) =&gt; {
+    try {
+        const adjustment = await service.createAdjustment(req.body);
+        return res.status(201).json(adjustment);
+    } catch (err) {
+        return res.status(400).json({ error: err.message});
+    }
+});
 &nbsp;
-const despatchAdviceSchema = new mongoose.Schema(
-  {
-    dispatchAdviceId: { type: String, required: true, unique: true },
-    externalRef: { type: String, required: true },
-    despatchParty: { type: partySchema, required: true },
-    deliveryParty: { type: partySchema, required: true },
-    dispatchDate: { type: Date, required: true },
-    expectedDeliveryDate: { type: Date },
-    items: { type: [lineItemSchema], required: true },
-    status: {
-      type: String,
-      enum: ['CREATED', 'SENT', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
-      default: 'CREATED',
-    },
-    adjustments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OrderAdjustment' }],
-  },
-  { timestamps: true }
-);
+// Get /order-adjustment/:id
+router.get('/:id', async (req,res) =&gt; {
+    try {
+        const adjustment = await OrderAdjustment.findOne({ orderAdjustmentId: req.params.id });
+        if (!adjustment) {
+            return res.status(404).json({ error: `Order adjustment ${req.params.id} not found` });
+        }
 &nbsp;
-module.exports = mongoose.model('DespatchAdvice', despatchAdviceSchema);
-&nbsp;</pre></td></tr></table></pre>
+        return res.status(200).json(adjustment);
+    } catch (err) {
+<span class="cstat-no" title="statement not covered" >        return res.status(500).json({ error: err.message});</span>
+    }
+});
+&nbsp;
+module.exports = router;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->

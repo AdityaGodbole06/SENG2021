@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/models/DespatchAdvice.js</title>
+    <title>Code coverage report for src/models/OrderAdjustment.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/models</a> DespatchAdvice.js</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/models</a> OrderAdjustment.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -97,19 +97,10 @@
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -120,6 +111,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -130,41 +130,50 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const mongoose = require('mongoose');
 &nbsp;
-const partySchema = new mongoose.Schema({
-  partyId: { type: String, required: true },
-  name: { type: String, required: true },
-}, { _id: false });
-&nbsp;
-const lineItemSchema = new mongoose.Schema({
+const adjustmentLineSchema = new mongoose.Schema({
   sku: { type: String, required: true },
-  description: { type: String },
-  quantity: { type: Number, required: true, min: 1 },
-  uom: { type: String, required: true },
+  field: { type: String, required: true,
+    enum: ['QUANTITY', 'DESCRIPTION', 'UNIT']
+   },
+  from: { type: mongoose.Schema.Types.Mixed, required: true },
+  to: { type: Number, required: true, min: 1 },
 }, { _id: false });
 &nbsp;
-const despatchAdviceSchema = new mongoose.Schema(
+const orderAdjustmentSchema = new mongoose.Schema(
   {
-    dispatchAdviceId: { type: String, required: true, unique: true },
-    externalRef: { type: String, required: true },
-    despatchParty: { type: partySchema, required: true },
-    deliveryParty: { type: partySchema, required: true },
-    dispatchDate: { type: Date, required: true },
-    expectedDeliveryDate: { type: Date },
-    items: { type: [lineItemSchema], required: true },
+    orderAdjustmentId: { type: String, required: true, unique: true },
+    dispatchAdviceId: { type: String, required: true, ref: 'DespatchAdvice' },
+    requestedByPartyId: { type: String, required: true },
+    reason: { type: String, required: true },
+    adjustments: { type: [adjustmentLineSchema], required: true,
+      validate: { validator: function(v) {
+          return v &amp;&amp; v.length &gt; 0;
+        },
+        message: 'Adjustment required'
+      }  
+    },
     status: {
       type: String,
-      enum: ['CREATED', 'SENT', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
-      default: 'CREATED',
+      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      default: 'PENDING',
+      index: true
     },
-    adjustments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OrderAdjustment' }],
   },
   { timestamps: true }
 );
 &nbsp;
-module.exports = mongoose.model('DespatchAdvice', despatchAdviceSchema);
+orderAdjustmentSchema.index({ despatchAdviceId: 1, status: 1});
+orderAdjustmentSchema.index({ createdAt: -1});
+module.exports = mongoose.model('OrderAdjustment', orderAdjustmentSchema);
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
