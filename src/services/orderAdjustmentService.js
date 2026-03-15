@@ -63,13 +63,17 @@ class orderAdjustmentService {
 
     validateAdjustments(adjustments, items) {
         if (!adjustments || adjustments.length === 0) {
-            throw new Error('At least one adjustment is required');
+            const err = new Error('At least one adjustment is required');
+            err.statusCode = 400;
+            throw err;
         }
 
         const validSkus = new Set(items.map(item => item.sku));
         for (const adj of adjustments) {
             if (!validSkus.has(adj.sku)) {
-                throw new Error(`SKU ${adj.sku} does not exist in the despatch advice`);
+                const err = new Error(`SKU ${adj.sku} does not exist in the despatch advice`);
+                err.statusCode = 400;
+                throw err;
             }
         }
     }

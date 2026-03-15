@@ -6,10 +6,12 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const OrderAdjustment = require('../models/OrderAdjustment');
+const Party = require('../models/Party');
 const app = require('../app');
 
 describe('Receipt Advice API', () => {
   let mongod;
+  let partyId;
 
   const despatchAdviceBase = {
     dispatchAdviceId: 'DA-TEST-001',
@@ -37,6 +39,14 @@ describe('Receipt Advice API', () => {
     mongod = await MongoMemoryServer.create();
     await mongoose.disconnect();
     await mongoose.connect(mongod.getUri());
+
+    partyId = 'PARTY-DELIVERY-001';
+    await Party.create({
+      partyId,
+      name: 'Test Delivery Party',
+      passwordHash: 'hash',
+      role: 'DELIVERY_PARTY',
+    });
   });
 
   afterAll(async () => {
@@ -55,11 +65,12 @@ describe('Receipt Advice API', () => {
   /**
    * CREATE
    */
-  describe('POST /receipt-advices', () => {
+  describe('POST /api/receipt-advices', () => {
 
     test('should create a receipt advice and return XML when quantities match', async () => {
       const response = await request(app)
-        .post('/receipt-advices')
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
         .send(validReceiptBody);
 
       expect(response.statusCode).toBe(201);
@@ -70,7 +81,10 @@ describe('Receipt Advice API', () => {
     });
 
     test('should update DespatchAdvice status to DELIVERED after receipt', async () => {
-      await request(app).post('/receipt-advices').send(validReceiptBody);
+      await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
 
       const da = await DespatchAdvice.findOne({ dispatchAdviceId: 'DA-TEST-001' });
       expect(da.status).toBe('DELIVERED');
@@ -85,7 +99,10 @@ describe('Receipt Advice API', () => {
         ],
       };
 
-      const response = await request(app).post('/receipt-advices').send(body);
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(body);
       expect(response.statusCode).toBe(201);
 
       const adjustment = await OrderAdjustment.findOne({ dispatchAdviceId: 'DA-TEST-001' });
@@ -97,7 +114,10 @@ describe('Receipt Advice API', () => {
     });
 
     test('should not create an OrderAdjustment when all quantities match', async () => {
-      await request(app).post('/receipt-advices').send(validReceiptBody);
+      await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
 
       const adjustment = await OrderAdjustment.findOne({ dispatchAdviceId: 'DA-TEST-001' });
       expect(adjustment).toBeNull();
@@ -105,7 +125,8 @@ describe('Receipt Advice API', () => {
 
     test('should return 404 if dispatchAdviceId does not exist', async () => {
       const response = await request(app)
-        .post('/receipt-advices')
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
         .send({ ...validReceiptBody, dispatchAdviceId: 'DA-NONEXISTENT' });
 
       expect(response.statusCode).toBe(404);
@@ -117,7 +138,10 @@ describe('Receipt Advice API', () => {
         receivedItems: [{ sku: 'ITEM-A', quantityReceived: -1, uom: 'EA' }],
       };
 
-      const response = await request(app).post('/receipt-advices').send(body);
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(body);
       expect(response.statusCode).toBe(422);
     });
 
@@ -127,7 +151,10 @@ describe('Receipt Advice API', () => {
         { status: 'CREATED' }
       );
 
-      const response = await request(app).post('/receipt-advices').send(validReceiptBody);
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
       expect(response.statusCode).toBe(409);
     });
 
@@ -137,7 +164,10 @@ describe('Receipt Advice API', () => {
         { status: 'DELIVERED' }
       );
 
-      const response = await request(app).post('/receipt-advices').send(validReceiptBody);
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
       expect(response.statusCode).toBe(409);
     });
 
@@ -147,7 +177,10 @@ describe('Receipt Advice API', () => {
         { status: 'CANCELLED' }
       );
 
-      const response = await request(app).post('/receipt-advices').send(validReceiptBody);
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
       expect(response.statusCode).toBe(409);
     });
 
@@ -157,34 +190,52 @@ describe('Receipt Advice API', () => {
         const body = { ...validReceiptBody };
         delete body[field];
 
-        const response = await request(app).post('/receipt-advices').send(body);
+        const response = await request(app)
+          .post('/api/receipt-advices')
+          .set('Authorization', `Bearer ${partyId}`)
+          .send(body);
         expect(response.statusCode).toBe(400);
       }
     );
+
+    test('should return 401 if no auth token is provided', async () => {
+      const response = await request(app)
+        .post('/api/receipt-advices')
+        .send(validReceiptBody);
+
+      expect(response.statusCode).toBe(401);
+    });
 
   });
 
   /**
    * READ
    */
-  describe('GET /receipt-advices/:receiptAdviceId', () => {
+  describe('GET /api/receipt-advices/:receiptAdviceId', () => {
     let createdId;
 
     beforeEach(async () => {
-      await request(app).post('/receipt-advices').send(validReceiptBody);
+      await request(app)
+        .post('/api/receipt-advices')
+        .set('Authorization', `Bearer ${partyId}`)
+        .send(validReceiptBody);
       const record = await ReceiptAdvice.findOne({ dispatchAdviceId: 'DA-TEST-001' });
       createdId = record.receiptAdviceId;
     });
 
     test('should retrieve receipt advice XML by ID', async () => {
-      const response = await request(app).get(`/receipt-advices/${createdId}`);
+      const response = await request(app)
+        .get(`/api/receipt-advices/${createdId}`)
+        .set('Authorization', `Bearer ${partyId}`);
 
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toMatch(/xml/);
     });
 
     test('should return 404 if receipt advice does not exist', async () => {
-      const response = await request(app).get('/receipt-advices/RA-NOT-EXIST');
+      const response = await request(app)
+        .get('/api/receipt-advices/RA-NOT-EXIST')
+        .set('Authorization', `Bearer ${partyId}`);
       expect(response.statusCode).toBe(404);
     });
 

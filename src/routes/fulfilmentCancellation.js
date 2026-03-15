@@ -8,6 +8,10 @@ const { v4: uuidv4 } = require('uuid');
 
 // POST /fulfilment-cancellations
 router.post('/', async (req, res) => {
+  if (req.party && req.party.role !== 'DESPATCH_PARTY') {
+    return res.status(403).json({ error: 'Only a DESPATCH_PARTY can create a Fulfilment Cancellation' });
+  }
+
   try {
     const { 
       dispatchAdviceId, 
