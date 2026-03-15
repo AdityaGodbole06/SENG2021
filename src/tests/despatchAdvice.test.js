@@ -4,10 +4,12 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 const DespatchAdvice = require('../models/DespatchAdvice');
+const Party = require('../models/Party');
 const app = require('../app');
 
 describe('Despatch Advice API', () => {
   let mongod;
+  let partyId;
 
   const validData = {
     externalRef: "REF-001",
@@ -35,6 +37,14 @@ describe('Despatch Advice API', () => {
     mongod = await MongoMemoryServer.create();
     await mongoose.disconnect();
     await mongoose.connect(mongod.getUri());
+
+    partyId = 'PARTY-DESPATCH-001';
+    await Party.create({
+      partyId,
+      name: 'Test Despatch Party',
+      passwordHash: 'hash',
+      role: 'DESPATCH_PARTY',
+    });
   });
 
   afterAll(async () => {
@@ -50,11 +60,12 @@ describe('Despatch Advice API', () => {
   /**
    * CREATE
    */
-  describe('POST /despatch-advices', () => {
+  describe('POST /api/despatch-advices', () => {
 
     test('should successfully create a despatch advice and return XML', async () => {
       const response = await request(app)
-        .post('/despatch-advices')
+        .post('/api/despatch-advices')
+        .set('Authorization', `Bearer ${partyId}`)
         .send(validData);
 
       expect(response.statusCode).toBe(201);
@@ -77,7 +88,8 @@ describe('Despatch Advice API', () => {
         delete data[field];
 
         const response = await request(app)
-          .post('/despatch-advices')
+          .post('/api/despatch-advices')
+          .set('Authorization', `Bearer ${partyId}`)
           .send(data);
 
         expect(response.statusCode).toBe(400);
@@ -98,10 +110,19 @@ describe('Despatch Advice API', () => {
       };
 
       const response = await request(app)
-        .post('/despatch-advices')
+        .post('/api/despatch-advices')
+        .set('Authorization', `Bearer ${partyId}`)
         .send(data);
 
       expect(response.statusCode).toBe(422);
+    });
+
+    test('should return 401 if no auth token is provided', async () => {
+      const response = await request(app)
+        .post('/api/despatch-advices')
+        .send(validData);
+
+      expect(response.statusCode).toBe(401);
     });
 
   });
@@ -109,12 +130,13 @@ describe('Despatch Advice API', () => {
   /**
    * READ
    */
-  describe('GET /despatch-advices/:dispatchAdviceId', () => {
+  describe('GET /api/despatch-advices/:dispatchAdviceId', () => {
     let generatedId;
 
     beforeEach(async () => {
-      const response = await request(app)
-        .post('/despatch-advices')
+      await request(app)
+        .post('/api/despatch-advices')
+        .set('Authorization', `Bearer ${partyId}`)
         .send(validData);
 
       const record = await DespatchAdvice.findOne({});
@@ -123,7 +145,8 @@ describe('Despatch Advice API', () => {
 
     test('should retrieve despatch advice XML by ID', async () => {
       const response = await request(app)
-        .get(`/despatch-advices/${generatedId}`);
+        .get(`/api/despatch-advices/${generatedId}`)
+        .set('Authorization', `Bearer ${partyId}`);
 
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toMatch(/xml/);
@@ -131,7 +154,8 @@ describe('Despatch Advice API', () => {
 
     test('should return 404 if despatch advice does not exist', async () => {
       const response = await request(app)
-        .get('/despatch-advices/DA-NOT-EXIST');
+        .get('/api/despatch-advices/DA-NOT-EXIST')
+        .set('Authorization', `Bearer ${partyId}`);
 
       expect(response.statusCode).toBe(404);
     });

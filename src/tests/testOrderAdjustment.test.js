@@ -23,7 +23,7 @@ describe('Test Order Adjustment API', () => {
             partyId: AUTH_PARTY_ID,
             name: 'Test Party 1',
             passwordHash: '123',
-            role: 'DESPATCH_PARTY',
+            role: 'DELIVERY_PARTY',
         });
     });
 
@@ -81,11 +81,11 @@ describe('Test Order Adjustment API', () => {
                 .set('Authorization', AUTH_HEADER)
                 .send(validBody);
 
-            expect(res.statusCode).toBe(400);
+            expect(res.statusCode).toBe(404);
             expect(res.body.error).toMatch(/not found/i);
         });
 
-        test('Despatch advice CANCELLED, return 400', async () => {
+        test('Despatch advice CANCELLED, return 409', async () => {
             await seedDespatch({ status: 'CANCELLED' });
 
             const res = await request(app)
@@ -93,11 +93,11 @@ describe('Test Order Adjustment API', () => {
                 .set('Authorization', AUTH_HEADER)
                 .send(validBody);
 
-            expect(res.statusCode).toBe(400);
+            expect(res.statusCode).toBe(409);
             expect(res.body.error).toMatch(/cancelled/i);
         });
 
-        test('Despatch advice already DELIVERED, return 400', async () => {
+        test('Despatch advice already DELIVERED, return 409', async () => {
             await seedDespatch({ status: 'DELIVERED' });
 
             const res = await request(app)
@@ -105,7 +105,7 @@ describe('Test Order Adjustment API', () => {
                 .set('Authorization', AUTH_HEADER)
                 .send(validBody);
 
-            expect(res.statusCode).toBe(400);
+            expect(res.statusCode).toBe(409);
             expect(res.body.error).toMatch(/delivered/i);
         });
 

@@ -8,11 +8,16 @@ servers:
   - url: http://localhost:3000
     description: Local server
 
+security:
+  - BearerAuth: []
+
 paths:
   # -------------------- DespatchAdvice --------------------
-  /despatch-advices:
+  /api/despatch-advices:
     post:
       summary: Create a new Despatch Advice (UBL 2.1 XML)
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -29,11 +34,17 @@ paths:
                 example: "<DespatchAdvice>...</DespatchAdvice>"
         '400':
           description: Validation error
+        '401':
+          description: Unauthorized - missing or invalid token
+        '403':
+          description: Forbidden - wrong role
         '422':
           description: Invalid quantity
-  /despatch-advices/{dispatchAdviceId}:
+  /api/despatch-advices/{dispatchAdviceId}:
     get:
       summary: Get a Despatch Advice by ID (UBL XML)
+      security:
+        - BearerAuth: []
       parameters:
         - in: path
           name: dispatchAdviceId
@@ -49,13 +60,17 @@ paths:
               schema:
                 type: string
                 example: "<DespatchAdvice>...</DespatchAdvice>"
+        '401':
+          description: Unauthorized - missing or invalid token
         '404':
           description: Despatch Advice not found
 
   # -------------------- ReceiptAdvice --------------------
-  /receipt-advices:
+  /api/receipt-advices:
     post:
       summary: Create a new Receipt Advice (UBL 2.1 XML)
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -72,15 +87,21 @@ paths:
                 example: "<ReceiptAdvice>...</ReceiptAdvice>"
         '400':
           description: Validation error
+        '401':
+          description: Unauthorized - missing or invalid token
+        '403':
+          description: Forbidden - wrong role
         '404':
           description: Despatch Advice not found
         '409':
           description: Conflict / invalid state
         '422':
           description: Invalid quantity
-  /receipt-advices/{receiptAdviceId}:
+  /api/receipt-advices/{receiptAdviceId}:
     get:
       summary: Get a Receipt Advice by ID (UBL XML)
+      security:
+        - BearerAuth: []
       parameters:
         - in: path
           name: receiptAdviceId
@@ -96,13 +117,17 @@ paths:
               schema:
                 type: string
                 example: "<ReceiptAdvice>...</ReceiptAdvice>"
+        '401':
+          description: Unauthorized - missing or invalid token
         '404':
           description: Receipt Advice not found
 
   # -------------------- FulfilmentCancellation --------------------
-  /fulfilment-cancellations:
+  /api/fulfilment-cancellations:
     post:
       summary: Create a Fulfilment Cancellation
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -118,11 +143,17 @@ paths:
                 $ref: '#/components/schemas/FulfilmentCancellationResponse'
         '400':
           description: Validation error
+        '401':
+          description: Unauthorized - missing or invalid token
+        '403':
+          description: Forbidden - wrong role
         '404':
           description: Despatch Advice not found
-  /fulfilment-cancellations/{fulfilmentCancellationId}:
+  /api/fulfilment-cancellations/{fulfilmentCancellationId}:
     get:
       summary: Get a Fulfilment Cancellation by ID
+      security:
+        - BearerAuth: []
       parameters:
         - in: path
           name: fulfilmentCancellationId
@@ -137,10 +168,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FulfilmentCancellationResponse'
+        '401':
+          description: Unauthorized - missing or invalid token
         '404':
           description: Cancellation not found
     delete:
       summary: Delete a Fulfilment Cancellation
+      security:
+        - BearerAuth: []
       parameters:
         - in: path
           name: fulfilmentCancellationId
@@ -150,13 +185,17 @@ paths:
       responses:
         '200':
           description: Deleted successfully
+        '401':
+          description: Unauthorized - missing or invalid token
         '404':
           description: Cancellation record not found
 
   # -------------------- OrderAdjustment --------------------
-  /order-adjustments:
+  /api/order-adjustments:
     post:
       summary: Create a new Order Adjustment
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -172,9 +211,19 @@ paths:
                 $ref: '#/components/schemas/OrderAdjustmentResponse'
         '400':
           description: Validation error
-  /order-adjustments/{orderAdjustmentId}:
+        '401':
+          description: Unauthorized - missing or invalid token
+        '403':
+          description: Forbidden - wrong role
+        '404':
+          description: Despatch Advice not found
+        '409':
+          description: Conflict - order already cancelled or delivered
+  /api/order-adjustments/{orderAdjustmentId}:
     get:
       summary: Get an Order Adjustment by ID
+      security:
+        - BearerAuth: []
       parameters:
         - in: path
           name: orderAdjustmentId
@@ -189,10 +238,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderAdjustmentResponse'
+        '401':
+          description: Unauthorized - missing or invalid token
         '404':
           description: Order Adjustment not found
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Pass your partyId as the Bearer token (e.g. "Bearer SUP-01")
+
   schemas:
     # -------------------- DespatchAdvice --------------------
     DespatchAdviceRequest:

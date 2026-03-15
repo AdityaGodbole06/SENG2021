@@ -6,6 +6,10 @@ const { generateDespatchAdviceXML } = require('../utils/ublGenerator');
 
 // POST /despatch-advices
 router.post('/', async (req, res) => {
+  if (req.party && req.party.role !== 'DESPATCH_PARTY') {
+    return res.status(403).json({ error: 'Only a DESPATCH_PARTY can create a Despatch Advice' });
+  }
+
   const { externalRef, despatchParty, deliveryParty, dispatchDate, expectedDeliveryDate, items } = req.body;
 
   if (!despatchParty || !deliveryParty || !dispatchDate || !items || !Array.isArray(items) || items.length === 0) {
