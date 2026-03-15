@@ -6,14 +6,16 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 const FulfilmentCancellation = require('../models/FulfilmentCancellation');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const Supply = require('../models/Supply');
-const app = require('../app'); 
+const Party = require('../models/Party');
+const app = require('../app');
 
   /**
    * CREATE Operations
-   * Testing POST /fulfilment-cancellations
+   * Testing POST /api/fulfilment-cancellations
    */
   describe('Fulfilment Cancellation API', () => {
     let mongod;
+    let partyId;
     const commonSku = "ITEM-A";
     const commonSupplier = "SUP-01";
     const commonDaId = "DA-12345";
@@ -22,6 +24,14 @@ const app = require('../app');
       mongod = await MongoMemoryServer.create();
       await mongoose.disconnect();
       await mongoose.connect(mongod.getUri());
+
+      partyId = 'PARTY-DESPATCH-FC-001';
+      await Party.create({
+        partyId,
+        name: 'Test Despatch Party',
+        passwordHash: 'hash',
+        role: 'DESPATCH_PARTY',
+      });
     });
 
     afterAll(async () => {
@@ -53,10 +63,11 @@ const app = require('../app');
       });
     });
 
-    describe('POST /fulfilment-cancellations', () => {
+    describe('POST /api/fulfilment-cancellations', () => {
       test('should successfully create a cancellation and update inventory/status', async () => {
         const response = await request(app)
-          .post('/fulfilment-cancellations')
+          .post('/api/fulfilment-cancellations')
+          .set('Authorization', `Bearer ${partyId}`)
           .send({ dispatchAdviceId: commonDaId, requestedByPartyId: "USER_1", reason: "Customer requested" });
 
         expect(response.statusCode).toBe(201);
@@ -66,7 +77,8 @@ const app = require('../app');
 
       test('should return 404 error if the referenced dispatchAdviceId does not exist', async () => {
         const response = await request(app)
-          .post('/fulfilment-cancellations')
+          .post('/api/fulfilment-cancellations')
+          .set('Authorization', `Bearer ${partyId}`)
           .send({ dispatchAdviceId: "NON-EXISTENT", requestedByPartyId: "U1", reason: "Test" });
         expect(response.statusCode).toBe(404);
       });
@@ -77,10 +89,20 @@ const app = require('../app');
         async (field) => {
           const data = { dispatchAdviceId: commonDaId, requestedByPartyId: "U1", reason: "Test" };
           delete data[field];
-          const response = await request(app).post('/fulfilment-cancellations').send(data);
+          const response = await request(app)
+            .post('/api/fulfilment-cancellations')
+            .set('Authorization', `Bearer ${partyId}`)
+            .send(data);
           expect(response.statusCode).toBe(400);
         }
       );
+
+      test('should return 401 if no auth token is provided', async () => {
+        const response = await request(app)
+          .post('/api/fulfilment-cancellations')
+          .send({ dispatchAdviceId: commonDaId, requestedByPartyId: "USER_1", reason: "Test" });
+        expect(response.statusCode).toBe(401);
+      });
     });
 
     describe('READ & DELETE Operations', () => {
@@ -89,30 +111,39 @@ const app = require('../app');
       // Nested beforeEach: Automatically creates a cancellation for every GET and DELETE test
       beforeEach(async () => {
         const res = await request(app)
-          .post('/fulfilment-cancellations')
+          .post('/api/fulfilment-cancellations')
+          .set('Authorization', `Bearer ${partyId}`)
           .send({ dispatchAdviceId: commonDaId, requestedByPartyId: "ADMIN", reason: "Setup for Read/Delete" });
         generatedId = res.body.fulfilmentCancellationId;
       });
 
       test('should retrieve a specific cancellation record by its ID', async () => {
-        const response = await request(app).get(`/fulfilment-cancellations/${generatedId}`);
+        const response = await request(app)
+          .get(`/api/fulfilment-cancellations/${generatedId}`)
+          .set('Authorization', `Bearer ${partyId}`);
         expect(response.statusCode).toBe(200);
         expect(response.body.fulfilmentCancellationId).toBe(generatedId);
       });
 
       test('should return 404 when attempting to read a non-existent ID', async () => {
-        const response = await request(app).get('/fulfilment-cancellations/MISSING-ID');
+        const response = await request(app)
+          .get('/api/fulfilment-cancellations/MISSING-ID')
+          .set('Authorization', `Bearer ${partyId}`);
         expect(response.statusCode).toBe(404);
       });
 
       test('should successfully delete an existing cancellation record', async () => {
-        const response = await request(app).delete(`/fulfilment-cancellations/${generatedId}`);
+        const response = await request(app)
+          .delete(`/api/fulfilment-cancellations/${generatedId}`)
+          .set('Authorization', `Bearer ${partyId}`);
         expect(response.statusCode).toBe(200);
         expect(await FulfilmentCancellation.findOne({ fulfilmentCancellationId: generatedId })).toBeNull();
       });
 
       test('should return 404 when trying to delete a non-existent ID', async () => {
-        const response = await request(app).delete('/fulfilment-cancellations/GHOST-ID');
+        const response = await request(app)
+          .delete('/api/fulfilment-cancellations/GHOST-ID')
+          .set('Authorization', `Bearer ${partyId}`);
         expect(response.statusCode).toBe(404);
       });
     });

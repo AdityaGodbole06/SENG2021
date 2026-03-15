@@ -9,6 +9,10 @@ const { generateReceiptAdviceXML } = require('../utils/ublGenerator');
 // POST /receipt-advices
 // Returns UBL 2.1 XML
 router.post('/', async (req, res) => {
+  if (req.party && req.party.role !== 'DELIVERY_PARTY') {
+    return res.status(403).json({ error: 'Only a DELIVERY_PARTY can submit a Receipt Advice' });
+  }
+
   try {
   const { dispatchAdviceId, receiptDate, receivedItems, notes } = req.body;
 

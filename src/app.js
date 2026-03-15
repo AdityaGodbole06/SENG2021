@@ -15,12 +15,10 @@ const app = express();
 app.use(express.json());
 connectDB();
 
-app.use('/receipt-advices', receiptAdviceRoutes);
-app.use('/despatch-advices',despatchAdviceRoutes);
-app.use('/fulfilment-cancellations', fulfilmentCancellationRoutes);
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
 app.use('/api/order-adjustments', authMiddleware, orderAdjustmentRoutes);
+app.use('/api/fulfilment-cancellations', authMiddleware, fulfilmentCancellationRoutes);
 
 app.get('/api/test', authMiddleware, (req, res) => {
     res.status(200).json({
