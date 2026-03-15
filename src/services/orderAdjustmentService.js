@@ -1,6 +1,6 @@
+const { v4: uuidv4 } = require('uuid');
 const OrderAdjustment = require('../models/OrderAdjustment');
 const DespatchAdvice = require('../models/DespatchAdvice');
-const { generateOrderAdjustmentId } = require('../utils/generateId');
 
 class orderAdjustmentService {
     /*
@@ -11,6 +11,10 @@ class orderAdjustmentService {
 
     async createAdjustment(data) {
         const { despatchAdviceId, requestedByPartyId, reason, adjustments } = data;
+
+        if (!despatchAdviceId || !requestedByPartyId || !reason || !adjustments) {
+            throw new Error('Missing required fields: despatchAdviceId, requestedByPartyId, reason, adjustments');
+        }
 
         // Case if despatch advice doesnt exist
         const despatchAdvice = await DespatchAdvice.findOne({ dispatchAdviceId: despatchAdviceId });
@@ -29,7 +33,7 @@ class orderAdjustmentService {
         this.validateAdjustments(adjustments, despatchAdvice.items);
 
         // Create unique adjustment id
-        const orderAdjustmentId = generateOrderAdjustmentId();
+        const orderAdjustmentId = `ADJ-${uuidv4()}`;
 
         // Make adjustments
         const adjustment = new OrderAdjustment({
