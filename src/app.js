@@ -4,11 +4,15 @@ const connectDB = require('./config/db');
 const { authMiddleware } = require('./middleware/auth');
 const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
+const fulfilmentCancellationRoutes = require('./routes/fulfilmentCancellation');
 const app = express();
 app.use(express.json());
 
 connectDB();
 
+app.use('/receipt-advices', receiptAdviceRoutes);
+app.use('/despatch-advices',despatchAdviceRoutes);
+app.use('/fulfilment-cancellations', fulfilmentCancellationRoutes);
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
 
