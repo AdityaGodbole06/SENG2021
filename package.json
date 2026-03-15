@@ -4,7 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand --verbose --forceExit"
+    "start": "node server.js",
+    "test": "jest --runInBand --verbose --forceExit",
+    "test:watch": "jest --watchAll"
+  },
+  "jest": {
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/*.test.js",
+      "**/test*.js"
+    ]
   },
   "keywords": [],
   "author": "",

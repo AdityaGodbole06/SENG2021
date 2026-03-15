@@ -4,6 +4,7 @@ const connectDB = require('./config/db');
 const { authMiddleware } = require('./middleware/auth');
 const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
+const orderAdjustmentRoutes = require('./routes/orderAdjustmentRoute');
 const fulfilmentCancellationRoutes = require('./routes/fulfilmentCancellation');
 const app = express();
 app.use(express.json());
@@ -15,6 +16,7 @@ app.use('/despatch-advices',despatchAdviceRoutes);
 app.use('/fulfilment-cancellations', fulfilmentCancellationRoutes);
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
+app.use('/api/order-adjustments', authMiddleware, orderAdjustmentRoutes);
 
 app.get('/api/test', authMiddleware, (req, res) => {
     res.status(200).json({
