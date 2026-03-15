@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: SENG2021 Microservice API
+  version: 1.0.0
+  description: API documentation for DespatchAdvice, ReceiptAdvice, FulfilmentCancellation, and OrderAdjustment.
+
+servers:
+  - url: http://localhost:3000
+    description: Local server
+
+paths:
+  # -------------------- DespatchAdvice --------------------
+  /despatch-advices:
+    post:
+      summary: Create a new Despatch Advice (UBL 2.1 XML)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespatchAdviceRequest'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: "<DespatchAdvice>...</DespatchAdvice>"
+        '400':
+          description: Validation error
+        '422':
+          description: Invalid quantity
+  /despatch-advices/{dispatchAdviceId}:
+    get:
+      summary: Get a Despatch Advice by ID (UBL XML)
+      parameters:
+        - in: path
+          name: dispatchAdviceId
+          required: true
+          schema:
+            type: string
+            example: DA-12345
+      responses:
+        '200':
+          description: Found
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: "<DespatchAdvice>...</DespatchAdvice>"
+        '404':
+          description: Despatch Advice not found
+
+  # -------------------- ReceiptAdvice --------------------
+  /receipt-advices:
+    post:
+      summary: Create a new Receipt Advice (UBL 2.1 XML)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptAdviceRequest'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: "<ReceiptAdvice>...</ReceiptAdvice>"
+        '400':
+          description: Validation error
+        '404':
+          description: Despatch Advice not found
+        '409':
+          description: Conflict / invalid state
+        '422':
+          description: Invalid quantity
+  /receipt-advices/{receiptAdviceId}:
+    get:
+      summary: Get a Receipt Advice by ID (UBL XML)
+      parameters:
+        - in: path
+          name: receiptAdviceId
+          required: true
+          schema:
+            type: string
+            example: RA-123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: Found
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: "<ReceiptAdvice>...</ReceiptAdvice>"
+        '404':
+          description: Receipt Advice not found
+
+  # -------------------- FulfilmentCancellation --------------------
+  /fulfilment-cancellations:
+    post:
+      summary: Create a Fulfilment Cancellation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FulfilmentCancellationRequest'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfilmentCancellationResponse'
+        '400':
+          description: Validation error
+        '404':
+          description: Despatch Advice not found
+  /fulfilment-cancellations/{fulfilmentCancellationId}:
+    get:
+      summary: Get a Fulfilment Cancellation by ID
+      parameters:
+        - in: path
+          name: fulfilmentCancellationId
+          required: true
+          schema:
+            type: string
+            example: FC-123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfilmentCancellationResponse'
+        '404':
+          description: Cancellation not found
+    delete:
+      summary: Delete a Fulfilment Cancellation
+      parameters:
+        - in: path
+          name: fulfilmentCancellationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+        '404':
+          description: Cancellation record not found
+
+  # -------------------- OrderAdjustment --------------------
+  /order-adjustments:
+    post:
+      summary: Create a new Order Adjustment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderAdjustmentRequest'
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderAdjustmentResponse'
+        '400':
+          description: Validation error
+  /order-adjustments/{orderAdjustmentId}:
+    get:
+      summary: Get an Order Adjustment by ID
+      parameters:
+        - in: path
+          name: orderAdjustmentId
+          required: true
+          schema:
+            type: string
+            example: OA-123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderAdjustmentResponse'
+        '404':
+          description: Order Adjustment not found
+
+components:
+  schemas:
+    # -------------------- DespatchAdvice --------------------
+    DespatchAdviceRequest:
+      type: object
+      required:
+        - despatchParty
+        - deliveryParty
+        - dispatchDate
+        - items
+      properties:
+        externalRef:
+          type: string
+          example: REF-001
+        despatchParty:
+          type: object
+          required:
+            - partyId
+            - name
+          properties:
+            partyId:
+              type: string
+              example: SUP-01
+            name:
+              type: string
+              example: Supplier Alpha
+        deliveryParty:
+          type: object
+          required:
+            - partyId
+            - name
+          properties:
+            partyId:
+              type: string
+              example: WH-02
+            name:
+              type: string
+              example: Warehouse Beta
+        dispatchDate:
+          type: string
+          format: date-time
+          example: '2026-03-15T06:00:00Z'
+        expectedDeliveryDate:
+          type: string
+          format: date-time
+          example: '2026-03-16T06:00:00Z'
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - sku
+              - description
+              - quantity
+              - uom
+            properties:
+              sku:
+                type: string
+                example: ITEM-A
+              description:
+                type: string
+                example: Blue Widget
+              quantity:
+                type: integer
+                example: 5
+              uom:
+                type: string
+                example: EA
+
+    # -------------------- ReceiptAdvice --------------------
+    ReceiptAdviceRequest:
+      type: object
+      required:
+        - dispatchAdviceId
+        - receiptDate
+        - receivedItems
+      properties:
+        dispatchAdviceId:
+          type: string
+          example: DA-12345
+        receiptDate:
+          type: string
+          format: date-time
+          example: '2026-03-15T06:00:00Z'
+        notes:
+          type: string
+          example: Minor packaging damage
+        receivedItems:
+          type: array
+          items:
+            type: object
+            required:
+              - sku
+              - quantityReceived
+            properties:
+              sku:
+                type: string
+                example: ITEM-A
+              quantityReceived:
+                type: integer
+                example: 5
+
+    # -------------------- FulfilmentCancellation --------------------
+    FulfilmentCancellationRequest:
+      type: object
+      required:
+        - dispatchAdviceId
+        - requestedByPartyId
+        - reason
+      properties:
+        dispatchAdviceId:
+          type: string
+          example: DA-12345
+        requestedByPartyId:
+          type: string
+          example: USER_1
+        reason:
+          type: string
+          example: Customer requested
+    FulfilmentCancellationResponse:
+      type: object
+      properties:
+        fulfilmentCancellationId:
+          type: string
+          example: FC-123e4567-e89b-12d3-a456-426614174000
+        dispatchAdviceId:
+          type: string
+          example: DA-12345
+        requestedByPartyId:
+          type: string
+          example: USER_1
+        reason:
+          type: string
+          example: Customer requested
+
+    # -------------------- OrderAdjustment --------------------
+    OrderAdjustmentRequest:
+      type: object
+      required:
+        - dispatchAdviceId
+        - requestedByPartyId
+        - reason
+        - adjustments
+      properties:
+        dispatchAdviceId:
+          type: string
+          example: DA-12345
+        requestedByPartyId:
+          type: string
+          example: WH-02
+        reason:
+          type: string
+          example: Quantity discrepancy
+        adjustments:
+          type: array
+          items:
+            type: object
+            required:
+              - sku
+              - field
+              - from
+              - to
+            properties:
+              sku:
+                type: string
+                example: ITEM-A
+              field:
+                type: string
+                example: QUANTITY
+              from:
+                type: integer
+                example: 5
+              to:
+                type: integer
+                example: 4
+    OrderAdjustmentResponse:
+      type: object
+      properties:
+        orderAdjustmentId:
+          type: string
+          example: OA-123e4567-e89b-12d3-a456-426614174000
+        dispatchAdviceId:
+          type: string
+          example: DA-12345
+        requestedByPartyId:
+          type: string
+          example: WH-02
+        reason:
+          type: string
+          example: Quantity discrepancy
+        adjustments:
+          type: array
+          items:
+            type: object
+            properties:
+              sku:
+                type: string
+                example: ITEM-A
+              field:
+                type: string
+                example: QUANTITY
+              from:
+                type: integer
+                example: 5
+              to:
+                type: integer
+                example: 4

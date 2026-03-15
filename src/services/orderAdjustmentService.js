@@ -13,21 +13,29 @@ class orderAdjustmentService {
         const { despatchAdviceId, requestedByPartyId, reason, adjustments } = data;
 
         if (!despatchAdviceId || !requestedByPartyId || !reason || !adjustments) {
-            throw new Error('Missing required fields: despatchAdviceId, requestedByPartyId, reason, adjustments');
+            const err = new Error('Missing required fields: despatchAdviceId, requestedByPartyId, reason, adjustments');
+            err.statusCode = 400;
+            throw err;
         }
 
         // Case if despatch advice doesnt exist
         const despatchAdvice = await DespatchAdvice.findOne({ dispatchAdviceId: despatchAdviceId });
         if (!despatchAdvice) {
-            throw new Error(`Despatch advice ${despatchAdviceId} not found`);
+            const err = new Error(`Despatch advice ${despatchAdviceId} not found`);
+            err.statusCode = 404;
+            throw err;
         }
 
         // Check if despatch can be adjusted
         if (despatchAdvice.status == 'CANCELLED') {
-            throw new Error(`Despatch advice can't be adjusted on cancelled orders`);
+            const err = new Error(`Despatch advice can't be adjusted on cancelled orders`);
+            err.statusCode = 409;
+            throw err;
         }
         if (despatchAdvice.status == 'DELIVERED') {
-            throw new Error(`Despatch advice can't be adjusted on delivered orders`);
+            const err = new Error(`Despatch advice can't be adjusted on delivered orders`);
+            err.statusCode = 409;
+            throw err;
         }
 
         this.validateAdjustments(adjustments, despatchAdvice.items);
