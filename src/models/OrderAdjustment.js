@@ -6,7 +6,7 @@ const adjustmentLineSchema = new mongoose.Schema({
     enum: ['QUANTITY', 'DESCRIPTION', 'UNIT']
    },
   from: { type: mongoose.Schema.Types.Mixed, required: true },
-  to: { type: Number, required: true, min: 1 },
+  to: { type: Number, required: true, min: 0 },
 }, { _id: false });
 
 const orderAdjustmentSchema = new mongoose.Schema(
