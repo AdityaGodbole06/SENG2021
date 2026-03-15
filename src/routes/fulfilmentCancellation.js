@@ -13,14 +13,6 @@ router.post('/', async (req, res) => {
       reason 
     } = req.body;
 
-    const parentAdvice = await DespatchAdvice.findOne({ dispatchAdviceId });
-    
-    if (!parentAdvice) {
-      return res.status(404).json({ 
-        message: 'DespatchAdvice not found' 
-      });
-    }
-
     // Mongoose will automatically trigger validation here 
     const cancellation = new FulfilmentCancellation({
       fulfilmentCancellationId,
@@ -28,6 +20,15 @@ router.post('/', async (req, res) => {
       requestedByPartyId,
       reason
     });
+    await cancellation.validate();
+
+    const parentAdvice = await DespatchAdvice.findOne({ dispatchAdviceId });
+    
+    if (!parentAdvice) {
+      return res.status(404).json({ 
+        message: 'DespatchAdvice not found' 
+      });
+    }
 
     const savedCancellation = await cancellation.save();
 

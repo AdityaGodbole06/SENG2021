@@ -1,25 +1,37 @@
 require('dotenv').config();
 const request = require('supertest');
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
 const FulfilmentCancellation = require('../models/FulfilmentCancellation');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const app = require('../app'); 
 
 describe('Fulfilment Cancellation API', () => {
+  let mongod;
 
   beforeAll(async () => {
-    await mongoose.connect(process.env.MONGODB_URI);
+    mongod = await MongoMemoryServer.create();
+    const uri = mongod.getUri();
+    
+    await mongoose.disconnect();
+    await mongoose.connect(uri);
   });
 
-  // Cleanup database between tests to ensure isolation
   afterEach(async () => {
     await FulfilmentCancellation.deleteMany({});
     await DespatchAdvice.deleteMany({});
   });
 
   afterAll(async () => {
-    await mongoose.connection.close();
-  });
+    await mongoose.disconnect();
+    
+    await Promise.all(mongoose.connections.map(con => con.close()));
+    
+    if (mongod) {
+      await mongod.stop();
+    }
+});
 
   /**
    * CREATE Operations
@@ -73,6 +85,19 @@ describe('Fulfilment Cancellation API', () => {
     });
 
     describe('Schema Field Validations', () => {
+
+      beforeEach(async () => {
+        await DespatchAdvice.create({
+          dispatchAdviceId: "DA-123",
+          externalRef: "REF-001",
+          despatchParty: { partyId: "SUP-01", name: "Supplier Alpha" },
+          deliveryParty: { partyId: "WH-02", name: "Warehouse Beta" },
+          dispatchDate: new Date(),
+          items: [{ sku: "ITEM-A", description: "Blue Widget", quantity: 5, uom: "EA" }],
+          status: 'CREATED'
+        });
+      });
+
       const requiredFields = [
         'fulfilmentCancellationId',
         'dispatchAdviceId',
