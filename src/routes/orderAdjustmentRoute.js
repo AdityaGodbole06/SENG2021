@@ -6,16 +6,22 @@ const orderAdjustmentService = require('../services/orderAdjustmentService');
 const service = new orderAdjustmentService();
 
 // POST /order-adjustment
+// Only DELIVERY_PARTY can create adjustments
 router.post('/', async (req, res) => {
+    if (req.party?.role !== 'DELIVERY_PARTY') {
+        return res.status(403).json({ error: 'Only a DELIVERY_PARTY can create order adjustments' });
+    }
+
     try {
         const adjustment = await service.createAdjustment(req.body);
         return res.status(201).json(adjustment);
     } catch (err) {
-        return res.status(400).json({ error: err.message});
+        return res.status(err.statusCode || 500).json({ error: err.message });
     }
 });
 
-// Get /order-adjustment/:id
+// GET /order-adjustment/:id
+// Both parties can read adjustments
 router.get('/:id', async (req,res) => {
     try {
         const adjustment = await OrderAdjustment.findOne({ orderAdjustmentId: req.params.id });
