@@ -5,8 +5,8 @@ info:
   description: API documentation for DespatchAdvice, ReceiptAdvice, FulfilmentCancellation, and OrderAdjustment.
 
 servers:
-  - url: http://localhost:3000
-    description: Local server
+  - url: http://13.236.86.146:3000
+    description: SpicyPotatoes
 
 security:
   - BearerAuth: []
