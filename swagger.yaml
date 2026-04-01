@@ -5,8 +5,12 @@ info:
   description: API documentation for DespatchAdvice, ReceiptAdvice, FulfilmentCancellation, and OrderAdjustment.
 
 servers:
+  - url: http://localhost:3000
+    description: Local Development
   - url: http://13.236.86.146:3000
-    description: SpicyPotatoes
+    description: Production (SpicyPotatoes)
+  - url: https://ordercreationapi.vercel.app
+    description: External Order Management API
 
 security:
   - BearerAuth: []
