@@ -1,0 +1,12 @@
+dry-run: null
+hookfiles: null
+
+endpoint: 'http://13.236.86.146:3000'
+spec: './swagger.yaml'
+
+output: 'tap'
+reporter: 'tap'
+
+sorted: false
+language: nodejs
+hookfiles: ./src/tests/dreck-hooks.js
