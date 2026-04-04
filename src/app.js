@@ -71,7 +71,8 @@ app.get('/api/test', authMiddleware, (req, res) => {
 });
 
 // === Swagger UI ===
-const swaggerDocument = YAML.load('./swagger.yaml');
+const path = require('path');
+const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.listen(process.env.PORT || 3000, () => {

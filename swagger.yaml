@@ -6,7 +6,9 @@ info:
 
 servers:
   - url: http://localhost:3000
-    description: Local server
+    description: Local Development
+  - url: http://13.236.86.146:3000
+    description: Production (SpicyPotatoes)
 
 security:
   - BearerAuth: []
