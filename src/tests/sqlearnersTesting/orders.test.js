@@ -47,7 +47,6 @@ describe('POST order tests guest mode', () => {
         expect(res.body.ublDocument).toContain(testData.orderJson.BuyerCustomerParty.PartyName);
     });
 
-    // Party Symmetry Tests (Your 14 original tests)
     const partyFields = ['PartyName', 'address.street', 'address.city', 'address.postal_code', 'address.country_code', 'contact.name', 'contact.email'];
     const partyPaths = [];
     ['BuyerCustomerParty', 'SellerSupplierParty'].forEach(p => {
@@ -70,7 +69,6 @@ describe('POST order tests guest mode', () => {
         expect(res.statusCode).toBe(400);
     });
 
-    // Data Type Integrity (The 6 tests you had)
     const typeValidationCases = [
         { path: 'orderJson.BuyerCustomerParty.PartyName', value: 12345 },
         { path: 'orderJson.BuyerCustomerParty.address', value: "Sydney" },
@@ -117,7 +115,6 @@ describe('POST order tests guest mode', () => {
         const res = await request(TEAM_B_URL).post('/v1/orders').send(payload);
 
         // If these return 201, it means Team B didn't add logic to stop 
-        // negative numbers or empty orders. Use this as a "Bug" in your report!
         if (res.statusCode === 201) {
           console.warn(`⚠️ LOGIC GAP: API accepted ${value} for ${path}`);
         }
@@ -332,13 +329,12 @@ describe('Authorized sets', () => {
     });
 
     test('Security (403): Should prevent a user from deleting someone else\'s order', async () => {
-      // Create a second 'Attacker' user
-      const attackerEmail = `attacker_del_${Date.now()}@test.com`;
+
+    const attackerEmail = `attacker_del_${Date.now()}@test.com`;
       await request(TEAM_B_URL).post('/v1/users').send({ email: attackerEmail, password: "123", name: "Hacker" });
       const login = await request(TEAM_B_URL).post('/v1/auth/login').send({ email: attackerEmail, password: "123" });
       const attackerToken = login.body.session.access_token;
 
-      // Attempt to delete User A's order using Attacker's token
       const victimId = createdIds[0];
       const res = await request(TEAM_B_URL)
         .delete(`/v1/orders/${victimId}`)
