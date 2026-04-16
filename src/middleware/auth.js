@@ -2,6 +2,11 @@ const Party = require("../models/Party");
 
 async function authMiddleware(req, res, next) {
     try {
+        // Skip auth for guest order creation endpoint
+        if (req.path === '/guest/create' && req.method === 'POST') {
+            return next();
+        }
+
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             return res.status(401).json({
