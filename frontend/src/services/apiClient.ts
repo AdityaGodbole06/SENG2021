@@ -112,7 +112,14 @@ export const createApiClients = (
     baseURL: 'http://localhost:3000/api/auth',
     authType: 'bearer',
   }),
+  // Local order management
   ordersApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api/orders',
+    token: tokens.ordersApi,
+    authType: 'bearer',
+  }),
+  // External API proxy for orders
+  ordersProxyApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/proxy',
     token: tokens.ordersApi,
     authType: 'bearer',
@@ -121,12 +128,17 @@ export const createApiClients = (
     },
   }),
   dispatchApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/proxy',
+    baseURL: 'http://localhost:3000/api/despatch-advices',
     token: tokens.dispatchApi,
     authType: 'bearer',
     credentials: {
       despatchToken: credentials?.despatchToken,
     },
+  }),
+  receiptApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api/receipt-advices',
+    token: tokens.dispatchApi,
+    authType: 'bearer',
   }),
   invoicesApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/proxy',
@@ -135,6 +147,16 @@ export const createApiClients = (
     credentials: {
       gptlessToken: credentials?.gptlessToken,
     },
+  }),
+  adjustmentApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api/order-adjustments',
+    token: tokens.dispatchApi,
+    authType: 'bearer',
+  }),
+  auditApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api',
+    token: tokens.ordersApi,
+    authType: 'bearer',
   }),
 })
 
