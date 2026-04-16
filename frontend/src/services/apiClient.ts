@@ -6,6 +6,11 @@ interface ApiClientConfig {
   apiKey?: string
   token?: string
   authType?: 'bearer' | 'apiKey'
+  credentials?: {
+    chalksnifferKey?: string
+    gptlessToken?: string
+    despatchToken?: string
+  }
 }
 
 export class ApiClient {
@@ -37,6 +42,20 @@ export class ApiClient {
     } else if (this.config.apiKey) {
       config.headers['X-API-Key'] = this.config.apiKey
     }
+
+    // Add external API credentials as custom headers
+    if (this.config.credentials) {
+      if (this.config.credentials.chalksnifferKey) {
+        config.headers['X-Chalksniffer-Key'] = this.config.credentials.chalksnifferKey
+      }
+      if (this.config.credentials.gptlessToken) {
+        config.headers['X-Gptless-Token'] = this.config.credentials.gptlessToken
+      }
+      if (this.config.credentials.despatchToken) {
+        config.headers.Authorization = `Bearer ${this.config.credentials.despatchToken}`
+      }
+    }
+
     return config
   }
 
@@ -80,26 +99,42 @@ export class ApiClient {
 }
 
 // Create client instances for each API (all pointing to local backend proxy)
-export const createApiClients = (tokens: ApiTokens) => ({
+export const createApiClients = (
+  tokens: ApiTokens,
+  credentials?: {
+    chalksnifferKey?: string
+    gptlessToken?: string
+    despatchToken?: string
+  }
+) => ({
   // Local backend proxy that forwards to external APIs
   authApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/proxy',
+    baseURL: 'http://localhost:3000/api/auth',
     authType: 'bearer',
   }),
   ordersApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/proxy',
     token: tokens.ordersApi,
     authType: 'bearer',
+    credentials: {
+      chalksnifferKey: credentials?.chalksnifferKey,
+    },
   }),
   dispatchApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/proxy',
     token: tokens.dispatchApi,
     authType: 'bearer',
+    credentials: {
+      despatchToken: credentials?.despatchToken,
+    },
   }),
   invoicesApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/proxy',
     token: tokens.invoicesApi,
     authType: 'bearer',
+    credentials: {
+      gptlessToken: credentials?.gptlessToken,
+    },
   }),
 })
 

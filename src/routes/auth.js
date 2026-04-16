@@ -1,8 +1,42 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const axios = require('axios');
 const Party = require('../models/Party');
 
 const router = express.Router();
+
+// Helper function to register with external APIs
+async function registerWithExternalAPIs() {
+  const credentials = {};
+
+  try {
+    // Register with Chalksniffer
+    console.log('Registering with Chalksniffer...');
+    const chalkRes = await axios.post('https://www.chalksniffer.com/auth/register');
+    credentials.chalksnifferKey = chalkRes.data.apiKey || chalkRes.data.key;
+    console.log('Chalksniffer key obtained');
+  } catch (error) {
+    console.error('Chalksniffer registration error:', error.message);
+    credentials.chalksnifferKey = null;
+  }
+
+  try {
+    // Register with GPTless
+    console.log('Registering with GPTless...');
+    const gptRes = await axios.post(
+      'https://api.gptless.au/v1/auth/register',
+      { groupName: 'DigitalBook' },
+      { headers: { APIToken: 'developer' } }
+    );
+    credentials.gptlessToken = gptRes.data.apiToken || gptRes.data.token;
+    console.log('GPTless token obtained');
+  } catch (error) {
+    console.error('GPTless registration error:', error.message);
+    credentials.gptlessToken = null;
+  }
+
+  return credentials;
+}
 
 // Register a new party (user)
 router.post('/register', async (req, res) => {
@@ -31,21 +65,28 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Register with external APIs
+    console.log('Registering with external APIs...');
+    const externalCredentials = await registerWithExternalAPIs();
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create new party
+    // Create new party with external API credentials
     const newParty = new Party({
       partyId,
       name,
       passwordHash,
       role,
+      chalksnifferKey: externalCredentials.chalksnifferKey,
+      gptlessToken: externalCredentials.gptlessToken,
     });
 
     await newParty.save();
 
     res.status(201).json({
       message: 'Party registered successfully',
+      token: partyId,
       party: {
         partyId: newParty.partyId,
         name: newParty.name,
@@ -90,11 +131,16 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({
       message: 'Login successful',
-      token: party.partyId, // In real scenario, use JWT
+      token: party.partyId,
       party: {
         partyId: party.partyId,
         name: party.name,
         role: party.role,
+      },
+      // Include API credentials for frontend to use in proxy
+      apiCredentials: {
+        chalksnifferKey: party.chalksnifferKey,
+        gptlessToken: party.gptlessToken,
       },
     });
   } catch (err) {
