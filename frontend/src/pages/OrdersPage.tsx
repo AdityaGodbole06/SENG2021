@@ -11,7 +11,7 @@ const OrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [orders] = useState<Order[]>([
+  const [orders, setOrders] = useState<Order[]>([
     {
       id: '1',
       orderNumber: 'ORD-001',
@@ -50,6 +50,48 @@ const OrdersPage: React.FC = () => {
       cancelled: 'danger',
     }
     return variants[status]
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this order?')) {
+      setOrders(orders.filter(o => o.id !== id))
+    }
+  }
+
+  const handleDownload = (order: Order) => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Order>
+  <OrderNumber>${order.orderNumber}</OrderNumber>
+  <BuyerParty>${order.buyerParty}</BuyerParty>
+  <SellerParty>${order.sellerParty}</SellerParty>
+  <Amount>${order.amount}</Amount>
+  <OrderDate>${order.orderDate}</OrderDate>
+  <DeliveryDate>${order.deliveryDate}</DeliveryDate>
+  <Status>${order.status}</Status>
+</Order>`
+
+    const blob = new Blob([xml], { type: 'application/xml' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${order.orderNumber}.xml`
+    a.click()
+  }
+
+  const handleCreateOrder = (formData: any) => {
+    const newOrder: Order = {
+      id: String(orders.length + 1),
+      orderNumber: formData.orderNumber,
+      buyerParty: formData.buyerParty,
+      sellerParty: formData.sellerParty,
+      amount: parseFloat(formData.amount),
+      orderDate: formData.orderDate,
+      deliveryDate: formData.deliveryDate,
+      status: 'pending',
+    }
+    setOrders([...orders, newOrder])
+    setIsCreateModalOpen(false)
+    alert('Order created successfully!')
   }
 
   return (
@@ -138,13 +180,25 @@ const OrdersPage: React.FC = () => {
                     </Badge>
                   </td>
                   <td className='px-6 py-4 text-sm flex gap-2'>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => alert('Edit functionality coming soon')}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='Edit order'
+                    >
                       <Edit2 size={16} />
                     </button>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => handleDownload(order)}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='Download as XML'
+                    >
                       <Download size={16} />
                     </button>
-                    <button className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'>
+                    <button
+                      onClick={() => handleDelete(order.id)}
+                      className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                      title='Delete order'
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -156,29 +210,105 @@ const OrdersPage: React.FC = () => {
       </Card>
 
       {/* Create Order Modal */}
-      <Modal
+      <CreateOrderModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title='Create New Order'
-        footer={
-          <>
-            <Button variant='secondary' onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setIsCreateModalOpen(false)}>Create Order</Button>
-          </>
-        }
-      >
-        <div className='space-y-4'>
-          <Input label='Order Number' placeholder='ORD-003' />
-          <Input label='Buyer Party' placeholder='Enter buyer name' />
-          <Input label='Seller Party' placeholder='Enter seller name' />
-          <Input label='Amount' type='number' placeholder='0.00' />
-          <Input label='Order Date' type='date' />
-          <Input label='Delivery Date' type='date' />
-        </div>
-      </Modal>
+        onSubmit={handleCreateOrder}
+      />
     </div>
+  )
+}
+
+interface CreateOrderModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: any) => void
+}
+
+const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    orderNumber: '',
+    buyerParty: '',
+    sellerParty: '',
+    amount: '',
+    orderDate: '',
+    deliveryDate: '',
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.orderNumber || !formData.buyerParty || !formData.sellerParty) {
+      alert('Please fill in all required fields')
+      return
+    }
+    onSubmit(formData)
+    setFormData({
+      orderNumber: '',
+      buyerParty: '',
+      sellerParty: '',
+      amount: '',
+      orderDate: '',
+      deliveryDate: '',
+    })
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title='Create New Order'
+      footer={
+        <>
+          <Button variant='secondary' onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>Create Order</Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <Input
+          label='Order Number'
+          placeholder='ORD-003'
+          value={formData.orderNumber}
+          onChange={e => setFormData({ ...formData, orderNumber: e.target.value })}
+          required
+        />
+        <Input
+          label='Buyer Party'
+          placeholder='Enter buyer name'
+          value={formData.buyerParty}
+          onChange={e => setFormData({ ...formData, buyerParty: e.target.value })}
+          required
+        />
+        <Input
+          label='Seller Party'
+          placeholder='Enter seller name'
+          value={formData.sellerParty}
+          onChange={e => setFormData({ ...formData, sellerParty: e.target.value })}
+          required
+        />
+        <Input
+          label='Amount'
+          type='number'
+          placeholder='0.00'
+          value={formData.amount}
+          onChange={e => setFormData({ ...formData, amount: e.target.value })}
+        />
+        <Input
+          label='Order Date'
+          type='date'
+          value={formData.orderDate}
+          onChange={e => setFormData({ ...formData, orderDate: e.target.value })}
+        />
+        <Input
+          label='Delivery Date'
+          type='date'
+          value={formData.deliveryDate}
+          onChange={e => setFormData({ ...formData, deliveryDate: e.target.value })}
+        />
+      </form>
+    </Modal>
   )
 }
 

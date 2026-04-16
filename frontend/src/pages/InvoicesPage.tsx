@@ -11,7 +11,7 @@ const InvoicesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [invoices] = useState<Invoice[]>([
+  const [invoices, setInvoices] = useState<Invoice[]>([
     {
       id: '1',
       invoiceNumber: 'INV-001',
@@ -51,6 +51,33 @@ const InvoicesPage: React.FC = () => {
       cancelled: 'default',
     }
     return variants[status]
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this invoice?')) {
+      setInvoices(invoices.filter(i => i.id !== id))
+    }
+  }
+
+  const handleDownload = (invoice: Invoice) => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice>
+  <InvoiceNumber>${invoice.invoiceNumber}</InvoiceNumber>
+  <OrderId>${invoice.orderId}</OrderId>
+  <BuyerParty>${invoice.buyerParty}</BuyerParty>
+  <SellerParty>${invoice.sellerParty}</SellerParty>
+  <TotalAmount>${invoice.totalAmount}</TotalAmount>
+  <InvoiceDate>${invoice.invoiceDate}</InvoiceDate>
+  <DueDate>${invoice.dueDate}</DueDate>
+  <Status>${invoice.status}</Status>
+</Invoice>`
+
+    const blob = new Blob([xml], { type: 'application/xml' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${invoice.invoiceNumber}.xml`
+    a.click()
   }
 
   return (
@@ -144,13 +171,25 @@ const InvoicesPage: React.FC = () => {
                     </Badge>
                   </td>
                   <td className='px-6 py-4 text-sm flex gap-2'>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => alert(`Invoice: ${invoice.invoiceNumber}\nAmount: $${invoice.totalAmount}\nStatus: ${invoice.status}`)}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='View invoice'
+                    >
                       <Eye size={16} />
                     </button>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => handleDownload(invoice)}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='Download as XML'
+                    >
                       <Download size={16} />
                     </button>
-                    <button className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'>
+                    <button
+                      onClick={() => handleDelete(invoice.id)}
+                      className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                      title='Delete invoice'
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>

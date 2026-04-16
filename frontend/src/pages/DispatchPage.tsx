@@ -11,7 +11,7 @@ const DispatchPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [dispatches] = useState<DespatchAdvice[]>([
+  const [dispatches, setDispatches] = useState<DespatchAdvice[]>([
     {
       id: '1',
       despatchNumber: 'DSP-001',
@@ -48,6 +48,30 @@ const DispatchPage: React.FC = () => {
       issue: 'danger',
     }
     return variants[status]
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this dispatch?')) {
+      setDispatches(dispatches.filter(d => d.id !== id))
+    }
+  }
+
+  const handleDownload = (dispatch: DespatchAdvice) => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<DespatchAdvice>
+  <DespatchNumber>${dispatch.despatchNumber}</DespatchNumber>
+  <OrderRef>${dispatch.orderRef}</OrderRef>
+  <DispatchDate>${dispatch.dispatchDate}</DispatchDate>
+  <ExpectedArrival>${dispatch.expectedArrival}</ExpectedArrival>
+  <Status>${dispatch.status}</Status>
+</DespatchAdvice>`
+
+    const blob = new Blob([xml], { type: 'application/xml' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${dispatch.despatchNumber}.xml`
+    a.click()
   }
 
   return (
@@ -136,13 +160,25 @@ const DispatchPage: React.FC = () => {
                     </Badge>
                   </td>
                   <td className='px-6 py-4 text-sm flex gap-2'>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => alert('Edit functionality coming soon')}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='Edit dispatch'
+                    >
                       <Edit2 size={16} />
                     </button>
-                    <button className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'>
+                    <button
+                      onClick={() => handleDownload(dispatch)}
+                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                      title='Download as XML'
+                    >
                       <Download size={16} />
                     </button>
-                    <button className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'>
+                    <button
+                      onClick={() => handleDelete(dispatch.id)}
+                      className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                      title='Delete dispatch'
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>
