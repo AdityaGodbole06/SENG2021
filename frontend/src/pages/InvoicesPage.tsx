@@ -11,7 +11,7 @@ import { createApiClients } from '@/services/apiClient'
 import { invoicesService } from '@/services/invoicesService'
 
 const InvoicesPage: React.FC = () => {
-  const { tokens } = useAuth()
+  const { tokens, apiCredentials } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -24,7 +24,7 @@ const InvoicesPage: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const data = await invoicesService.getInvoices(clients)
         setInvoices(data)
       } catch (err) {
@@ -35,7 +35,7 @@ const InvoicesPage: React.FC = () => {
       }
     }
     fetchInvoices()
-  }, [tokens])
+  }, [tokens, apiCredentials])
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,7 +57,7 @@ const InvoicesPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const success = await invoicesService.deleteInvoice(clients, id)
         if (success) {
           setInvoices(invoices.filter(i => i.id !== id))
@@ -95,7 +95,7 @@ const InvoicesPage: React.FC = () => {
 
   const handleCreateInvoice = async (formData: any) => {
     try {
-      const clients = createApiClients(tokens)
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
       const newInvoice = await invoicesService.createInvoice(clients, {
         invoiceNumber: formData.invoiceNumber || `INV-${Date.now()}`,
         orderId: formData.orderId,

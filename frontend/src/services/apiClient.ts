@@ -37,7 +37,10 @@ export class ApiClient {
   }
 
   private addAuthHeaders(config: any) {
-    if (this.config.token && this.config.authType === 'bearer') {
+    // Set Authorization header - despatchToken takes precedence if present
+    if (this.config.credentials?.despatchToken) {
+      config.headers.Authorization = `Bearer ${this.config.credentials.despatchToken}`
+    } else if (this.config.token && this.config.authType === 'bearer') {
       config.headers.Authorization = `Bearer ${this.config.token}`
     } else if (this.config.apiKey) {
       config.headers['X-API-Key'] = this.config.apiKey
@@ -50,9 +53,6 @@ export class ApiClient {
       }
       if (this.config.credentials.gptlessToken) {
         config.headers['X-Gptless-Token'] = this.config.credentials.gptlessToken
-      }
-      if (this.config.credentials.despatchToken) {
-        config.headers.Authorization = `Bearer ${this.config.credentials.despatchToken}`
       }
     }
 

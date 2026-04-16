@@ -12,7 +12,7 @@ export function useApi<T>(
   fetchFn: (clients: ApiClients) => Promise<T>,
   deps?: any[]
 ) {
-  const { tokens } = useAuth()
+  const { tokens, apiCredentials } = useAuth()
   const [state, setState] = useState<UseApiState<T>>({
     data: null,
     loading: true,
@@ -23,7 +23,7 @@ export function useApi<T>(
     const fetch = async () => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const data = await fetchFn(clients)
         setState({ data, loading: false, error: null })
       } catch (error) {
@@ -44,7 +44,7 @@ export function useApi<T>(
 export function useApiMutation<T, R = void>(
   mutationFn: (clients: ApiClients, args: T) => Promise<R>
 ) {
-  const { tokens } = useAuth()
+  const { tokens, apiCredentials } = useAuth()
   const [state, setState] = useState<UseApiState<R>>({
     data: null,
     loading: false,
@@ -55,7 +55,7 @@ export function useApiMutation<T, R = void>(
     async (args: T) => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const data = await mutationFn(clients, args)
         setState({ data, loading: false, error: null })
         return data
@@ -69,7 +69,7 @@ export function useApiMutation<T, R = void>(
         throw err
       }
     },
-    [tokens]
+    [tokens, apiCredentials]
   )
 
   return { ...state, mutate }

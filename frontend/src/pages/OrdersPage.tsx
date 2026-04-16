@@ -11,7 +11,7 @@ import { createApiClients } from '@/services/apiClient'
 import { ordersService } from '@/services/ordersService'
 
 const OrdersPage: React.FC = () => {
-  const { tokens } = useAuth()
+  const { tokens, apiCredentials } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -24,7 +24,7 @@ const OrdersPage: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const data = await ordersService.getOrders(clients)
         setOrders(data)
       } catch (err) {
@@ -35,7 +35,7 @@ const OrdersPage: React.FC = () => {
       }
     }
     fetchOrders()
-  }, [tokens])
+  }, [tokens, apiCredentials])
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,7 +58,7 @@ const OrdersPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
       try {
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const success = await ordersService.deleteOrder(clients, id)
         if (success) {
           setOrders(orders.filter(o => o.id !== id))
@@ -95,7 +95,7 @@ const OrdersPage: React.FC = () => {
 
   const handleCreateOrder = async (formData: any) => {
     try {
-      const clients = createApiClients(tokens)
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
       const newOrder = await ordersService.createOrder(clients, {
         orderNumber: formData.orderNumber,
         buyerParty: formData.buyerParty,
