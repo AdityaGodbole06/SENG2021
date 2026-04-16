@@ -81,23 +81,23 @@ export class ApiClient {
 
 // Create client instances for each API
 export const createApiClients = (tokens: ApiTokens) => ({
-  // Local backend API
+  // External backend API
   authApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/auth',
+    baseURL: 'http://13.236.86.146:3000/api/auth',
     authType: 'bearer',
   }),
   ordersApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'http://13.236.86.146:3000/api',
     token: tokens.ordersApi,
     authType: 'bearer',
   }),
   dispatchApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'http://13.236.86.146:3000/api',
     token: tokens.dispatchApi,
     authType: 'bearer',
   }),
   invoicesApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'http://13.236.86.146:3000/api',
     token: tokens.invoicesApi,
     authType: 'bearer',
   }),
