@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Download, Trash2, Eye } from 'lucide-react'
 import { Invoice } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -6,35 +6,36 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { useAuth } from '@/context/AuthContext'
+import { createApiClients } from '@/services/apiClient'
+import { invoicesService } from '@/services/invoicesService'
 
 const InvoicesPage: React.FC = () => {
+  const { tokens } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    {
-      id: '1',
-      invoiceNumber: 'INV-001',
-      orderId: 'ORD-001',
-      buyerParty: 'Buyer Corp',
-      sellerParty: 'Seller Inc',
-      totalAmount: 5000,
-      invoiceDate: '2024-04-15',
-      dueDate: '2024-05-15',
-      status: 'paid',
-    },
-    {
-      id: '2',
-      invoiceNumber: 'INV-002',
-      orderId: 'ORD-002',
-      buyerParty: 'Buyer Corp',
-      sellerParty: 'Seller Inc',
-      totalAmount: 3200,
-      invoiceDate: '2024-04-16',
-      dueDate: '2024-05-16',
-      status: 'unpaid',
-    },
-  ])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const clients = createApiClients(tokens)
+        const data = await invoicesService.getInvoices(clients)
+        setInvoices(data)
+      } catch (err) {
+        setError('Failed to load invoices')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchInvoices()
+  }, [tokens])
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,9 +54,21 @@ const InvoicesPage: React.FC = () => {
     return variants[status]
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
-      setInvoices(invoices.filter(i => i.id !== id))
+      try {
+        const clients = createApiClients(tokens)
+        const success = await invoicesService.deleteInvoice(clients, id)
+        if (success) {
+          setInvoices(invoices.filter(i => i.id !== id))
+          alert('Invoice deleted successfully')
+        } else {
+          alert('Failed to delete invoice')
+        }
+      } catch (err) {
+        alert('Error deleting invoice')
+        console.error(err)
+      }
     }
   }
 
@@ -80,15 +93,56 @@ const InvoicesPage: React.FC = () => {
     a.click()
   }
 
+  const handleCreateInvoice = async (formData: any) => {
+    try {
+      const clients = createApiClients(tokens)
+      const newInvoice = await invoicesService.createInvoice(clients, {
+        invoiceNumber: formData.invoiceNumber || `INV-${Date.now()}`,
+        orderId: formData.orderId,
+        buyerParty: formData.buyerParty,
+        sellerParty: formData.sellerParty || 'Seller Inc',
+        totalAmount: parseFloat(formData.totalAmount) || 0,
+        invoiceDate: formData.invoiceDate,
+        dueDate: formData.dueDate,
+      })
+      if (newInvoice) {
+        setInvoices([...invoices, newInvoice])
+        setIsCreateModalOpen(false)
+        alert('Invoice created successfully!')
+      } else {
+        alert('Failed to create invoice')
+      }
+    } catch (err) {
+      alert('Error creating invoice')
+      console.error(err)
+    }
+  }
+
   return (
     <div>
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Invoices</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} disabled={loading}>
           <Plus size={18} className='mr-2' />
           Generate Invoice
         </Button>
       </div>
+
+      {error && (
+        <Card className='mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'>
+          <CardBody>
+            <p className='text-red-600 dark:text-red-400'>{error}</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {loading && (
+        <Card className='mb-6'>
+          <CardBody>
+            <p className='text-slate-600 dark:text-slate-400'>Loading invoices...</p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Search and Filter */}
       <Card className='mb-6'>
@@ -201,33 +255,106 @@ const InvoicesPage: React.FC = () => {
       </Card>
 
       {/* Generate Invoice Modal */}
-      <Modal
+      <CreateInvoiceModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title='Generate Invoice'
-        footer={
-          <>
-            <Button variant='secondary' onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setIsCreateModalOpen(false)}>Generate</Button>
-          </>
-        }
-      >
-        <div className='space-y-4'>
-          <Input label='Order ID' placeholder='ORD-001' />
-          <Input label='Invoice Date' type='date' />
-          <Input label='Due Date' type='date' />
-          <Input label='Total Amount' type='number' placeholder='0.00' />
-          <div>
-            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
-              Buyer Details
-            </label>
-            <Input placeholder='Buyer name' />
-          </div>
-        </div>
-      </Modal>
+        onSubmit={handleCreateInvoice}
+      />
     </div>
+  )
+}
+
+interface CreateInvoiceModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: any) => void
+}
+
+const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    orderId: '',
+    invoiceNumber: '',
+    invoiceDate: '',
+    dueDate: '',
+    totalAmount: '',
+    buyerParty: '',
+    sellerParty: '',
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.orderId || !formData.invoiceDate) {
+      alert('Please fill in required fields')
+      return
+    }
+    onSubmit(formData)
+    setFormData({
+      orderId: '',
+      invoiceNumber: '',
+      invoiceDate: '',
+      dueDate: '',
+      totalAmount: '',
+      buyerParty: '',
+      sellerParty: '',
+    })
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title='Generate Invoice'
+      footer={
+        <>
+          <Button variant='secondary' onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>Generate</Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <Input
+          label='Order ID'
+          placeholder='ORD-001'
+          value={formData.orderId}
+          onChange={e => setFormData({ ...formData, orderId: e.target.value })}
+          required
+        />
+        <Input
+          label='Invoice Date'
+          type='date'
+          value={formData.invoiceDate}
+          onChange={e => setFormData({ ...formData, invoiceDate: e.target.value })}
+          required
+        />
+        <Input
+          label='Due Date'
+          type='date'
+          value={formData.dueDate}
+          onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+        />
+        <Input
+          label='Total Amount'
+          type='number'
+          placeholder='0.00'
+          value={formData.totalAmount}
+          onChange={e => setFormData({ ...formData, totalAmount: e.target.value })}
+        />
+        <Input
+          label='Buyer Party'
+          placeholder='Buyer name'
+          value={formData.buyerParty}
+          onChange={e => setFormData({ ...formData, buyerParty: e.target.value })}
+        />
+        <Input
+          label='Seller Party'
+          placeholder='Seller name'
+          value={formData.sellerParty}
+          onChange={e => setFormData({ ...formData, sellerParty: e.target.value })}
+        />
+      </form>
+    </Modal>
   )
 }
 
