@@ -81,18 +81,23 @@ export class ApiClient {
 
 // Create client instances for each API
 export const createApiClients = (tokens: ApiTokens) => ({
+  // Local backend API
+  authApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api/auth',
+    authType: 'bearer',
+  }),
   ordersApi: new ApiClient({
-    baseURL: 'https://www.chalksniffer.com/api',
+    baseURL: 'http://localhost:3000/api',
     token: tokens.ordersApi,
     authType: 'bearer',
   }),
   dispatchApi: new ApiClient({
-    baseURL: 'http://13.236.86.146:3000/api',
+    baseURL: 'http://localhost:3000/api',
     token: tokens.dispatchApi,
     authType: 'bearer',
   }),
   invoicesApi: new ApiClient({
-    baseURL: 'https://docs.gptless.au/api',
+    baseURL: 'http://localhost:3000/api',
     token: tokens.invoicesApi,
     authType: 'bearer',
   }),

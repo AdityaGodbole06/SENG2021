@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const { authMiddleware } = require('./middleware/auth');
 
+const authRoutes = require('./routes/auth');
 const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
 const orderAdjustmentRoutes = require('./routes/orderAdjustmentRoute');
@@ -13,8 +14,23 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 
 const app = express();
+
+// Enable CORS for frontend development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 connectDB();
+
+// Auth routes (no middleware required)
+app.use('/api/auth', authRoutes);
 
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
