@@ -7,6 +7,9 @@ import DashboardPage from '@/pages/DashboardPage'
 import OrdersPage from '@/pages/OrdersPage'
 import DispatchPage from '@/pages/DispatchPage'
 import InvoicesPage from '@/pages/InvoicesPage'
+import AuditTrailPage from '@/pages/AuditTrailPage'
+import GuestOrderPage from '@/pages/GuestOrderPage'
+import FulfillmentTrackingPage from '@/pages/FulfillmentTrackingPage'
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth()
@@ -15,6 +18,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path='/login' element={<LoginPage />} />
+        <Route path='/guest-order' element={<GuestOrderPage />} />
         <Route path='*' element={<Navigate to='/login' replace />} />
       </Routes>
     )
@@ -27,6 +31,8 @@ function AppRoutes() {
         <Route path='/orders' element={<OrdersPage />} />
         <Route path='/dispatch' element={<DispatchPage />} />
         <Route path='/invoices' element={<InvoicesPage />} />
+        <Route path='/audit-trail' element={<AuditTrailPage />} />
+        <Route path='/fulfillment' element={<FulfillmentTrackingPage />} />
         <Route path='*' element={<Navigate to='/dashboard' replace />} />
       </Routes>
     </DashboardLayout>

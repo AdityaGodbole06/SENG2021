@@ -142,6 +142,7 @@ router.post('/guest/create', async (req, res) => {
     // Return XML directly without saving
     res.status(200).json({
       message: 'Guest order UBL document generated successfully',
+      ubl: xmlDocument,
       xmlDocument,
       note: 'This order was not saved to the database. Please store this XML for your records.',
     });

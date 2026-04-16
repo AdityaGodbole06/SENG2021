@@ -38,7 +38,7 @@ app.use('/api/auth', authRoutes);
 // External API Proxy routes (no middleware required)
 app.use('/api/proxy', externalApiProxyRoutes);
 
-// Order routes (auth required for most, but guest route is public)
+// Order routes (auth required for most, guest/create endpoint is skipped in auth middleware)
 app.use('/api/orders', authMiddleware, orderRoutes);
 
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);

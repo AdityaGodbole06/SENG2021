@@ -255,6 +255,19 @@ const LoginPage: React.FC = () => {
             <p>Party ID: BUYER001, Password: test123</p>
             <p>Party ID: SUPPLIER001, Password: test123</p>
           </div>
+
+          <div className='mt-4 text-center'>
+            <p className='text-slate-600 dark:text-slate-400 text-sm'>
+              Want to create an order without an account?{' '}
+              <button
+                type='button'
+                onClick={() => navigate('/guest-order')}
+                className='text-blue-600 dark:text-blue-400 font-medium hover:underline'
+              >
+                Create Guest Order
+              </button>
+            </p>
+          </div>
         </CardBody>
       </Card>
     </div>

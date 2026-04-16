@@ -105,4 +105,54 @@ const generateDespatchAdviceXML = (data) => {
 
   return doc.end({ prettyPrint: true });
 };
-module.exports = { generateReceiptAdviceXML,generateDespatchAdviceXML, };
+
+// Order data --> UBL 2.1 XML
+const generateOrderXML = (data) => {
+  const { orderNumber, buyerParty, sellerParty, amount, orderDate, deliveryDate } = data;
+
+  const doc = create({ version: '1.0', encoding: 'UTF-8' })
+    .ele('Order', {
+      xmlns: 'urn:oasis:names:specification:ubl:schema:xsd:Order-2',
+      'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+      'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
+    })
+      .ele('cbc:UBLVersionID').txt('2.1').up()
+      .ele('cbc:ID').txt(orderNumber).up()
+      .ele('cbc:IssueDate').txt(formatDate(orderDate || new Date())).up();
+
+  if (deliveryDate) {
+    doc.ele('cbc:ExpectedDeliveryDate').txt(formatDate(deliveryDate)).up();
+  }
+
+  // Buyer party
+  doc
+    .ele('cac:BuyerCustomerParty')
+      .ele('cac:Party')
+        .ele('cbc:ID').txt(typeof buyerParty === 'string' ? buyerParty : buyerParty.partyId || buyerParty).up()
+        .ele('cbc:Name').txt(typeof buyerParty === 'string' ? buyerParty : buyerParty.name || buyerParty).up()
+      .up()
+    .up();
+
+  // Seller party
+  doc
+    .ele('cac:SellerSupplierParty')
+      .ele('cac:Party')
+        .ele('cbc:ID').txt(typeof sellerParty === 'string' ? sellerParty : sellerParty.partyId || sellerParty).up()
+        .ele('cbc:Name').txt(typeof sellerParty === 'string' ? sellerParty : sellerParty.name || sellerParty).up()
+      .up()
+    .up();
+
+  // Order line with total amount
+  doc
+    .ele('cac:OrderLine')
+      .ele('cbc:ID').txt('1').up()
+      .ele('cbc:LineExtensionAmount', { currencyID: 'USD' }).txt(String(amount)).up()
+      .ele('cac:Item')
+        .ele('cbc:Description').txt('Order Items').up()
+      .up()
+    .up();
+
+  return doc.end({ prettyPrint: true });
+};
+
+module.exports = { generateOrderXML, generateReceiptAdviceXML, generateDespatchAdviceXML };
