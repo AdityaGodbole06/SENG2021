@@ -3,6 +3,9 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 const DespatchAdvice = require('../models/DespatchAdvice');
 const { generateDespatchAdviceXML } = require('../utils/ublGenerator');
+const AuditService = require('../services/auditService');
+
+const auditService = new AuditService();
 
 // POST /despatch-advices
 router.post('/', async (req, res) => {
@@ -64,6 +67,16 @@ router.post('/', async (req, res) => {
   });
 
   await despatchAdvice.save();
+
+  // Log to audit trail
+  await auditService.log(
+    'CREATE_DESPATCH',
+    'DESPATCH',
+    despatchAdviceId,
+    req.party?.partyId || 'SYSTEM',
+    { despatchParty, deliveryParty, itemCount: items.length },
+    `Despatch Advice created: ${despatchAdviceId}`
+  );
 
   res.set('Content-Type', 'application/xml');
   return res.status(201).send(xmlDocument);

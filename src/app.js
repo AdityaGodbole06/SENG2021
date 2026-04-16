@@ -10,6 +10,8 @@ const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
 const orderAdjustmentRoutes = require('./routes/orderAdjustmentRoute');
 const fulfilmentCancellationRoutes = require('./routes/fulfilmentCancellation');
+const orderRoutes = require('./routes/orders');
+const auditTrailRoutes = require('./routes/auditTrail');
 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
@@ -36,10 +38,14 @@ app.use('/api/auth', authRoutes);
 // External API Proxy routes (no middleware required)
 app.use('/api/proxy', externalApiProxyRoutes);
 
+// Order routes (auth required for most, but guest route is public)
+app.use('/api/orders', authMiddleware, orderRoutes);
+
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
 app.use('/api/order-adjustments', authMiddleware, orderAdjustmentRoutes);
 app.use('/api/fulfilment-cancellations', authMiddleware, fulfilmentCancellationRoutes);
+app.use('/api/audit-trail', authMiddleware, auditTrailRoutes);
 
 app.get('/health', async (req, res) => {
     const dbState = mongoose.connection.readyState;

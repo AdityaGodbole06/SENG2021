@@ -5,6 +5,9 @@ const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const OrderAdjustment = require('../models/OrderAdjustment');
 const { generateReceiptAdviceXML } = require('../utils/ublGenerator');
+const AuditService = require('../services/auditService');
+
+const auditService = new AuditService();
 
 // POST /receipt-advices
 // Returns UBL 2.1 XML
@@ -87,6 +90,16 @@ router.post('/', async (req, res) => {
   });
 
   await receiptAdvice.save();
+
+  // Log to audit trail
+  await auditService.log(
+    'SUBMIT_RECEIPT',
+    'RECEIPT',
+    receiptAdviceId,
+    req.party?.partyId || 'SYSTEM',
+    { dispatchAdviceId, itemCount: receivedItems.length },
+    `Receipt Advice submitted: ${receiptAdviceId}`
+  );
 
   // Compare received quantities against dispatched quantities per SKU
   const dispatchedMap = {};

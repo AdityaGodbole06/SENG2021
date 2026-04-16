@@ -1,6 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const ReceiptAdvice = require('../models/ReceiptAdvice');
+const DespatchAdvice = require('../models/DespatchAdvice');
+const AuditService = require('../services/auditService');
+
+const auditService = new AuditService();
 
 // Middleware to extract user credentials from request headers
 function getCredentialsFromRequest(req) {
@@ -132,6 +137,39 @@ router.post('/invoices', async (req, res) => {
 
     if (!gptlessToken) {
       return res.status(401).json({ error: 'Missing GPTless credentials' });
+    }
+
+    // Validate fulfillment before generating invoice
+    const { dispatchAdviceId } = req.body;
+
+    if (dispatchAdviceId) {
+      // Check if despatch advice exists
+      const despatch = await DespatchAdvice.findOne({ dispatchAdviceId });
+      if (!despatch) {
+        return res.status(404).json({
+          error: 'Fulfillment validation failed',
+          details: 'Despatch Advice not found',
+        });
+      }
+
+      // Check if receipt advice exists (fulfillment is complete)
+      const receipt = await ReceiptAdvice.findOne({ dispatchAdviceId });
+      if (!receipt) {
+        return res.status(409).json({
+          error: 'Fulfillment validation failed',
+          details: 'Cannot generate invoice without a submitted Receipt Advice. Fulfillment must be completed first.',
+        });
+      }
+
+      // Log invoice generation
+      await auditService.log(
+        'CREATE_INVOICE',
+        'INVOICE',
+        `INV-${req.body.invoiceNumber || 'PENDING'}`,
+        req.party?.partyId || 'SYSTEM',
+        { dispatchAdviceId },
+        `Invoice generation initiated for ${dispatchAdviceId}`
+      );
     }
 
     const response = await axios.post(
