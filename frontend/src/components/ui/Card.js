@@ -1,0 +1,11 @@
+import { jsx as _jsx } from "react/jsx-runtime";
+import React from 'react';
+import clsx from 'clsx';
+export const Card = React.forwardRef(({ className, ...props }, ref) => (_jsx("div", { ref: ref, className: clsx('bg-white dark:bg-slate-900 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-slate-200 dark:border-slate-800', className), ...props })));
+Card.displayName = 'Card';
+export const CardHeader = React.forwardRef(({ className, ...props }, ref) => (_jsx("div", { ref: ref, className: clsx('px-6 py-4 border-b border-slate-200 dark:border-slate-800', className), ...props })));
+CardHeader.displayName = 'CardHeader';
+export const CardBody = React.forwardRef(({ className, ...props }, ref) => (_jsx("div", { ref: ref, className: clsx('px-6 py-4', className), ...props })));
+CardBody.displayName = 'CardBody';
+export const CardFooter = React.forwardRef(({ className, ...props }, ref) => (_jsx("div", { ref: ref, className: clsx('px-6 py-4 border-t border-slate-200 dark:border-slate-800', className), ...props })));
+CardFooter.displayName = 'CardFooter';
