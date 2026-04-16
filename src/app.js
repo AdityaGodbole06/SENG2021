@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const { authMiddleware } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
+const externalApiProxyRoutes = require('./routes/externalApiProxy');
 const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
 const orderAdjustmentRoutes = require('./routes/orderAdjustmentRoute');
@@ -31,6 +32,9 @@ connectDB();
 
 // Auth routes (no middleware required)
 app.use('/api/auth', authRoutes);
+
+// External API Proxy routes (no middleware required)
+app.use('/api/proxy', externalApiProxyRoutes);
 
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
