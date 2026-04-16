@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Download } from 'lucide-react'
 import { Order } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -6,33 +6,36 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { useAuth } from '@/context/AuthContext'
+import { createApiClients } from '@/services/apiClient'
+import { ordersService } from '@/services/ordersService'
 
 const OrdersPage: React.FC = () => {
+  const { tokens } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: '1',
-      orderNumber: 'ORD-001',
-      buyerParty: 'Buyer Corp',
-      sellerParty: 'Seller Inc',
-      amount: 5000,
-      orderDate: '2024-04-10',
-      deliveryDate: '2024-04-20',
-      status: 'confirmed',
-    },
-    {
-      id: '2',
-      orderNumber: 'ORD-002',
-      buyerParty: 'Buyer Corp',
-      sellerParty: 'Seller Inc',
-      amount: 3200,
-      orderDate: '2024-04-12',
-      deliveryDate: '2024-04-25',
-      status: 'pending',
-    },
-  ])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const clients = createApiClients(tokens)
+        const data = await ordersService.getOrders(clients)
+        setOrders(data)
+      } catch (err) {
+        setError('Failed to load orders')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [tokens])
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,9 +55,21 @@ const OrdersPage: React.FC = () => {
     return variants[status]
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
-      setOrders(orders.filter(o => o.id !== id))
+      try {
+        const clients = createApiClients(tokens)
+        const success = await ordersService.deleteOrder(clients, id)
+        if (success) {
+          setOrders(orders.filter(o => o.id !== id))
+          alert('Order deleted successfully')
+        } else {
+          alert('Failed to delete order')
+        }
+      } catch (err) {
+        alert('Error deleting order')
+        console.error(err)
+      }
     }
   }
 
@@ -78,31 +93,55 @@ const OrdersPage: React.FC = () => {
     a.click()
   }
 
-  const handleCreateOrder = (formData: any) => {
-    const newOrder: Order = {
-      id: String(orders.length + 1),
-      orderNumber: formData.orderNumber,
-      buyerParty: formData.buyerParty,
-      sellerParty: formData.sellerParty,
-      amount: parseFloat(formData.amount),
-      orderDate: formData.orderDate,
-      deliveryDate: formData.deliveryDate,
-      status: 'pending',
+  const handleCreateOrder = async (formData: any) => {
+    try {
+      const clients = createApiClients(tokens)
+      const newOrder = await ordersService.createOrder(clients, {
+        orderNumber: formData.orderNumber,
+        buyerParty: formData.buyerParty,
+        sellerParty: formData.sellerParty,
+        amount: parseFloat(formData.amount) || 0,
+        orderDate: formData.orderDate,
+        deliveryDate: formData.deliveryDate,
+      })
+      if (newOrder) {
+        setOrders([...orders, newOrder])
+        setIsCreateModalOpen(false)
+        alert('Order created successfully!')
+      } else {
+        alert('Failed to create order')
+      }
+    } catch (err) {
+      alert('Error creating order')
+      console.error(err)
     }
-    setOrders([...orders, newOrder])
-    setIsCreateModalOpen(false)
-    alert('Order created successfully!')
   }
 
   return (
     <div>
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Orders</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} disabled={loading}>
           <Plus size={18} className='mr-2' />
           Create Order
         </Button>
       </div>
+
+      {error && (
+        <Card className='mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'>
+          <CardBody>
+            <p className='text-red-600 dark:text-red-400'>{error}</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {loading && (
+        <Card className='mb-6'>
+          <CardBody>
+            <p className='text-slate-600 dark:text-slate-400'>Loading orders...</p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Search and Filter */}
       <Card className='mb-6'>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Download } from 'lucide-react'
 import { DespatchAdvice } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -6,31 +6,36 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { useAuth } from '@/context/AuthContext'
+import { createApiClients } from '@/services/apiClient'
+import { dispatchService } from '@/services/dispatchService'
 
 const DispatchPage: React.FC = () => {
+  const { tokens } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [dispatches, setDispatches] = useState<DespatchAdvice[]>([
-    {
-      id: '1',
-      despatchNumber: 'DSP-001',
-      orderRef: 'ORD-001',
-      dispatchDate: '2024-04-15',
-      deliveryParty: 'Buyer Corp',
-      expectedArrival: '2024-04-20',
-      status: 'dispatched',
-    },
-    {
-      id: '2',
-      despatchNumber: 'DSP-002',
-      orderRef: 'ORD-002',
-      dispatchDate: '2024-04-16',
-      deliveryParty: 'Buyer Corp',
-      expectedArrival: '2024-04-25',
-      status: 'in_transit',
-    },
-  ])
+  const [dispatches, setDispatches] = useState<DespatchAdvice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDispatches = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const clients = createApiClients(tokens)
+        const data = await dispatchService.getDispatches(clients)
+        setDispatches(data)
+      } catch (err) {
+        setError('Failed to load dispatches')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDispatches()
+  }, [tokens])
 
   const filteredDispatches = dispatches.filter(dispatch => {
     const matchesSearch = dispatch.despatchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,9 +55,21 @@ const DispatchPage: React.FC = () => {
     return variants[status]
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this dispatch?')) {
-      setDispatches(dispatches.filter(d => d.id !== id))
+      try {
+        const clients = createApiClients(tokens)
+        const success = await dispatchService.deleteDispatch(clients, id)
+        if (success) {
+          setDispatches(dispatches.filter(d => d.id !== id))
+          alert('Dispatch deleted successfully')
+        } else {
+          alert('Failed to delete dispatch')
+        }
+      } catch (err) {
+        alert('Error deleting dispatch')
+        console.error(err)
+      }
     }
   }
 
@@ -74,15 +91,54 @@ const DispatchPage: React.FC = () => {
     a.click()
   }
 
+  const handleCreateDispatch = async (formData: any) => {
+    try {
+      const clients = createApiClients(tokens)
+      const newDispatch = await dispatchService.createDispatch(clients, {
+        despatchNumber: formData.orderNumber,
+        orderRef: formData.orderNumber,
+        dispatchDate: formData.dispatchDate,
+        deliveryParty: formData.deliveryParty || 'Buyer',
+        expectedArrival: formData.expectedArrival,
+      })
+      if (newDispatch) {
+        setDispatches([...dispatches, newDispatch])
+        setIsCreateModalOpen(false)
+        alert('Dispatch created successfully!')
+      } else {
+        alert('Failed to create dispatch')
+      }
+    } catch (err) {
+      alert('Error creating dispatch')
+      console.error(err)
+    }
+  }
+
   return (
     <div>
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Dispatch</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} disabled={loading}>
           <Plus size={18} className='mr-2' />
           Create Dispatch
         </Button>
       </div>
+
+      {error && (
+        <Card className='mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'>
+          <CardBody>
+            <p className='text-red-600 dark:text-red-400'>{error}</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {loading && (
+        <Card className='mb-6'>
+          <CardBody>
+            <p className='text-slate-600 dark:text-slate-400'>Loading dispatches...</p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Search and Filter */}
       <Card className='mb-6'>
@@ -190,36 +246,87 @@ const DispatchPage: React.FC = () => {
       </Card>
 
       {/* Create Dispatch Modal */}
-      <Modal
+      <CreateDispatchModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title='Create Dispatch Advice'
-        footer={
-          <>
-            <Button variant='secondary' onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setIsCreateModalOpen(false)}>Create</Button>
-          </>
-        }
-      >
-        <div className='space-y-4'>
-          <Input label='Order Reference' placeholder='ORD-001' />
-          <Input label='Dispatch Date' type='date' />
-          <Input label='Expected Arrival' type='date' />
-          <div>
-            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2'>
-              Status
-            </label>
-            <select className='w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500'>
-              <option>Dispatched</option>
-              <option>In Transit</option>
-              <option>Delivered</option>
-            </select>
-          </div>
-        </div>
-      </Modal>
+        onSubmit={handleCreateDispatch}
+      />
     </div>
+  )
+}
+
+interface CreateDispatchModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: any) => void
+}
+
+const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    orderNumber: '',
+    dispatchDate: '',
+    expectedArrival: '',
+    deliveryParty: '',
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.orderNumber || !formData.dispatchDate) {
+      alert('Please fill in required fields')
+      return
+    }
+    onSubmit(formData)
+    setFormData({
+      orderNumber: '',
+      dispatchDate: '',
+      expectedArrival: '',
+      deliveryParty: '',
+    })
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title='Create Dispatch Advice'
+      footer={
+        <>
+          <Button variant='secondary' onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>Create</Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <Input
+          label='Order Reference'
+          placeholder='ORD-001'
+          value={formData.orderNumber}
+          onChange={e => setFormData({ ...formData, orderNumber: e.target.value })}
+          required
+        />
+        <Input
+          label='Dispatch Date'
+          type='date'
+          value={formData.dispatchDate}
+          onChange={e => setFormData({ ...formData, dispatchDate: e.target.value })}
+          required
+        />
+        <Input
+          label='Expected Arrival'
+          type='date'
+          value={formData.expectedArrival}
+          onChange={e => setFormData({ ...formData, expectedArrival: e.target.value })}
+        />
+        <Input
+          label='Delivery Party'
+          placeholder='Buyer name'
+          value={formData.deliveryParty}
+          onChange={e => setFormData({ ...formData, deliveryParty: e.target.value })}
+        />
+      </form>
+    </Modal>
   )
 }
 
