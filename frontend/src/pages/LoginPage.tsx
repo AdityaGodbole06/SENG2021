@@ -11,7 +11,7 @@ type AuthMode = 'login' | 'register'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { login, setTokens } = useAuth()
+  const { login } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,20 +48,17 @@ const LoginPage: React.FC = () => {
         return
       }
 
-      // Save token and user info
-      setTokens({
-        ordersApi: response.token,
-        dispatchApi: response.token,
-        invoicesApi: response.token,
-      })
-
-      login({
-        id: response.party.partyId,
-        name: response.party.name,
-        email: response.party.partyId,
-        role: response.party.role.includes('DELIVERY') ? 'buyer' : 'supplier',
-        company: 'Trading Partner',
-      })
+      // Login with user info and API credentials
+      login(
+        {
+          id: response.party.partyId,
+          name: response.party.name,
+          email: response.party.partyId,
+          role: response.party.role.includes('DELIVERY') ? 'buyer' : 'supplier',
+          company: 'Trading Partner',
+        },
+        response.apiCredentials || {}
+      )
 
       navigate('/dashboard')
     } catch (err) {
