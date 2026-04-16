@@ -11,7 +11,7 @@ import { createApiClients } from '@/services/apiClient'
 import { dispatchService } from '@/services/dispatchService'
 
 const DispatchPage: React.FC = () => {
-  const { tokens } = useAuth()
+  const { tokens, apiCredentials } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -24,7 +24,7 @@ const DispatchPage: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const data = await dispatchService.getDispatches(clients)
         setDispatches(data)
       } catch (err) {
@@ -35,7 +35,7 @@ const DispatchPage: React.FC = () => {
       }
     }
     fetchDispatches()
-  }, [tokens])
+  }, [tokens, apiCredentials])
 
   const filteredDispatches = dispatches.filter(dispatch => {
     const matchesSearch = dispatch.despatchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,7 +58,7 @@ const DispatchPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this dispatch?')) {
       try {
-        const clients = createApiClients(tokens)
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
         const success = await dispatchService.deleteDispatch(clients, id)
         if (success) {
           setDispatches(dispatches.filter(d => d.id !== id))
@@ -93,7 +93,7 @@ const DispatchPage: React.FC = () => {
 
   const handleCreateDispatch = async (formData: any) => {
     try {
-      const clients = createApiClients(tokens)
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
       const newDispatch = await dispatchService.createDispatch(clients, {
         despatchNumber: formData.orderNumber,
         orderRef: formData.orderNumber,
