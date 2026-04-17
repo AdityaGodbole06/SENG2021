@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth, ApiTokens } from '@/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -11,7 +11,7 @@ type AuthMode = 'login' | 'register'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, setTokens } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +59,14 @@ const LoginPage: React.FC = () => {
         },
         response.apiCredentials || {}
       )
+
+      // Set API tokens - use partyId as the token for all APIs
+      const tokens: ApiTokens = {
+        ordersApi: response.party.partyId,
+        dispatchApi: response.party.partyId,
+        invoicesApi: response.party.partyId,
+      }
+      setTokens(tokens)
 
       navigate('/dashboard')
     } catch (err) {
