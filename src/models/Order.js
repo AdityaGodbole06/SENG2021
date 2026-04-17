@@ -59,9 +59,8 @@ const OrderSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt timestamp before saving
-OrderSchema.pre('save', function (next) {
+OrderSchema.pre('save', async function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 module.exports = mongoose.model('Order', OrderSchema);
