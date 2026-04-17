@@ -1,5 +1,8 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import { User, UserRole } from '@/types'
+import { setUnauthorizedHandler, ApiTokens } from '@/services/apiClient'
+
+export type { ApiTokens }
 
 export interface ApiCredentials {
   chalksnifferKey?: string
@@ -17,12 +20,6 @@ interface AuthContextType {
   logout: () => void
   setTokens: (tokens: ApiTokens) => void
   tokens: ApiTokens
-}
-
-export interface ApiTokens {
-  ordersApi?: string
-  dispatchApi?: string
-  invoicesApi?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -65,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('api_tokens')
     localStorage.removeItem('api_credentials')
   }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      logout()
+      window.location.href = '/login'
+    })
+  }, [logout])
 
   const setTokens = useCallback((newTokens: ApiTokens) => {
     setTokensState(newTokens)

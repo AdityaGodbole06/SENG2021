@@ -7,6 +7,36 @@ const AuditService = require('../services/auditService');
 
 const auditService = new AuditService();
 
+// GET /despatch-advices - list all
+router.get('/', async (req, res) => {
+  try {
+    const filter = req.party ? {
+      $or: [
+        { 'despatchParty.partyId': req.party.partyId },
+        { 'deliveryParty.partyId': req.party.partyId },
+      ],
+    } : {}
+    const advices = await DespatchAdvice.find(filter).sort({ createdAt: -1 })
+    res.status(200).json({
+      total: advices.length,
+      despatchAdvices: advices.map(d => ({
+        dispatchAdviceId: d.dispatchAdviceId,
+        externalRef: d.externalRef,
+        despatchParty: d.despatchParty,
+        deliveryParty: d.deliveryParty,
+        dispatchDate: d.dispatchDate,
+        expectedDeliveryDate: d.expectedDeliveryDate,
+        status: d.status,
+        items: d.items,
+        createdAt: d.createdAt,
+      })),
+    })
+  } catch (err) {
+    console.error('Error listing despatch advices:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // POST /despatch-advices
 router.post('/', async (req, res) => {
   if (req.party && req.party.role !== 'DESPATCH_PARTY') {

@@ -51,25 +51,15 @@ const OrdersPage: React.FC = () => {
   }
 
   const handleCreateOrder = async () => {
-    console.log('handleCreateOrder called', { tokens, apiCredentials })
     if (!formData.orderNumber || !formData.buyerParty || !formData.sellerParty || !formData.amount) {
-      console.log('Validation failed', formData)
       setError('Please fill in all required fields')
       return
     }
 
     try {
       setError(null)
-      console.log('Creating API clients with tokens:', tokens)
       const clients = createApiClients(tokens || {}, apiCredentials || {})
-      console.log('Calling orderService.createOrder with:', {
-        orderNumber: formData.orderNumber,
-        buyerParty: formData.buyerParty,
-        sellerParty: formData.sellerParty,
-        amount: parseFloat(formData.amount),
-        orderDate: formData.orderDate,
-      })
-      const result = await orderService.createOrder(clients, {
+      await orderService.createOrder(clients, {
         orderNumber: formData.orderNumber,
         buyerParty: formData.buyerParty,
         sellerParty: formData.sellerParty,
@@ -78,25 +68,18 @@ const OrdersPage: React.FC = () => {
         deliveryDate: formData.deliveryDate || undefined,
       })
 
-      console.log('Order creation result:', result)
-      if (result) {
-        alert('Order created successfully!')
-        setFormData({
-          orderNumber: '',
-          buyerParty: '',
-          sellerParty: '',
-          amount: '',
-          orderDate: new Date().toISOString().split('T')[0],
-          deliveryDate: '',
-        })
-        setIsCreateModalOpen(false)
-        await fetchOrders()
-      } else {
-        setError('Failed to create order')
-      }
+      setFormData({
+        orderNumber: '',
+        buyerParty: '',
+        sellerParty: '',
+        amount: '',
+        orderDate: new Date().toISOString().split('T')[0],
+        deliveryDate: '',
+      })
+      setIsCreateModalOpen(false)
+      await fetchOrders()
     } catch (err) {
-      console.error('Order creation error:', err)
-      setError(`Error creating order: ${err instanceof Error ? err.message : String(err)}`)
+      setError(err instanceof Error ? err.message : 'Failed to create order')
     }
   }
 
@@ -111,7 +94,7 @@ const OrdersPage: React.FC = () => {
     try {
       setError(null)
       const clients = createApiClients(tokens || {}, apiCredentials || {})
-      const result = await orderService.updateOrder(clients, editingOrder.orderNumber, {
+      await orderService.updateOrder(clients, editingOrder.orderNumber, {
         buyerParty: formData.buyerParty,
         sellerParty: formData.sellerParty,
         amount: parseFloat(formData.amount),
@@ -119,17 +102,11 @@ const OrdersPage: React.FC = () => {
         deliveryDate: formData.deliveryDate || undefined,
       })
 
-      if (result) {
-        alert('Order updated successfully!')
-        setEditingOrder(null)
-        setIsEditModalOpen(false)
-        await fetchOrders()
-      } else {
-        setError('Failed to update order')
-      }
+      setEditingOrder(null)
+      setIsEditModalOpen(false)
+      await fetchOrders()
     } catch (err) {
-      setError('Error updating order')
-      console.error(err)
+      setError(err instanceof Error ? err.message : 'Failed to update order')
     }
   }
 
@@ -139,17 +116,10 @@ const OrdersPage: React.FC = () => {
     try {
       setError(null)
       const clients = createApiClients(tokens || {}, apiCredentials || {})
-      const result = await orderService.deleteOrder(clients, orderNumber)
-
-      if (result) {
-        alert('Order deleted successfully!')
-        await fetchOrders()
-      } else {
-        setError('Failed to delete order')
-      }
+      await orderService.deleteOrder(clients, orderNumber)
+      await fetchOrders()
     } catch (err) {
-      setError('Error deleting order')
-      console.error(err)
+      setError(err instanceof Error ? err.message : 'Failed to delete order')
     }
   }
 

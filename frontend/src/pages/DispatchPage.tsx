@@ -11,7 +11,8 @@ import { createApiClients } from '@/services/apiClient'
 import { dispatchService } from '@/services/dispatchService'
 
 const DispatchPage: React.FC = () => {
-  const { tokens, apiCredentials } = useAuth()
+  const { tokens, apiCredentials, role } = useAuth()
+  const isSupplier = role === 'supplier'
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -28,8 +29,7 @@ const DispatchPage: React.FC = () => {
         const data = await dispatchService.getDispatches(clients)
         setDispatches(data)
       } catch (err) {
-        setError('Failed to load dispatches')
-        console.error(err)
+        setError(err instanceof Error ? err.message : 'Failed to load dispatches')
       } finally {
         setLoading(false)
       }
@@ -59,16 +59,10 @@ const DispatchPage: React.FC = () => {
     if (confirm('Are you sure you want to delete this dispatch?')) {
       try {
         const clients = createApiClients(tokens || {}, apiCredentials || {})
-        const success = await dispatchService.deleteDispatch(clients, id)
-        if (success) {
-          setDispatches(dispatches.filter(d => d.id !== id))
-          alert('Dispatch deleted successfully')
-        } else {
-          alert('Failed to delete dispatch')
-        }
+        await dispatchService.deleteDispatch(clients, id)
+        setDispatches(dispatches.filter(d => d.id !== id))
       } catch (err) {
-        alert('Error deleting dispatch')
-        console.error(err)
+        setError(err instanceof Error ? err.message : 'Failed to delete dispatch')
       }
     }
   }
@@ -98,19 +92,13 @@ const DispatchPage: React.FC = () => {
         despatchNumber: formData.orderNumber,
         orderRef: formData.orderNumber,
         dispatchDate: formData.dispatchDate,
-        deliveryParty: formData.deliveryParty || 'Buyer',
+        deliveryParty: formData.deliveryParty || '',
         expectedArrival: formData.expectedArrival,
       })
-      if (newDispatch) {
-        setDispatches([...dispatches, newDispatch])
-        setIsCreateModalOpen(false)
-        alert('Dispatch created successfully!')
-      } else {
-        alert('Failed to create dispatch')
-      }
+      setDispatches([...dispatches, newDispatch])
+      setIsCreateModalOpen(false)
     } catch (err) {
-      alert('Error creating dispatch')
-      console.error(err)
+      setError(err instanceof Error ? err.message : 'Failed to create dispatch')
     }
   }
 
@@ -118,10 +106,16 @@ const DispatchPage: React.FC = () => {
     <div>
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Dispatch</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)} disabled={loading}>
-          <Plus size={18} className='mr-2' />
-          Create Dispatch
-        </Button>
+        {isSupplier ? (
+          <Button onClick={() => setIsCreateModalOpen(true)} disabled={loading}>
+            <Plus size={18} className='mr-2' />
+            Create Dispatch
+          </Button>
+        ) : (
+          <span className='text-sm text-slate-500 dark:text-slate-400'>
+            Only suppliers can create dispatches
+          </span>
+        )}
       </div>
 
       {error && (

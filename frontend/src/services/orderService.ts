@@ -1,4 +1,5 @@
 import { ApiClients } from './apiClient'
+import { AxiosError } from 'axios'
 
 export interface Order {
   orderNumber: string
@@ -13,54 +14,57 @@ export interface Order {
   xmlDocument?: string
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof AxiosError) {
+    return error.response?.data?.error ?? error.message ?? fallback
+  }
+  if (error instanceof Error) return error.message
+  return fallback
+}
+
 export const orderService = {
-  async createOrder(clients: ApiClients, data: Omit<Order, 'orderID' | 'status'>): Promise<Order | null> {
+  async createOrder(clients: ApiClients, data: Omit<Order, 'orderID' | 'status'>): Promise<Order> {
     try {
-      const response = await clients.ordersApi.post('/orders', data)
+      const response = await clients.ordersApi.post('/', data)
       return response.order as Order
     } catch (error) {
-      console.error('Error creating order:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to create order'))
     }
   },
 
   async getOrders(clients: ApiClients): Promise<Order[]> {
     try {
-      const response = await clients.ordersApi.get('/orders')
+      const response = await clients.ordersApi.get('/')
       return response.orders as Order[]
     } catch (error) {
-      console.error('Error fetching orders:', error)
-      return []
+      throw new Error(extractErrorMessage(error, 'Failed to fetch orders'))
     }
   },
 
   async getOrderByNumber(clients: ApiClients, orderNumber: string): Promise<Order | null> {
     try {
-      const response = await clients.ordersApi.get(`/orders/${orderNumber}`)
+      const response = await clients.ordersApi.get(`/${orderNumber}`)
       return response as Order
     } catch (error) {
-      console.error('Error fetching order:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to fetch order'))
     }
   },
 
-  async updateOrder(clients: ApiClients, orderNumber: string, data: Partial<Order>): Promise<Order | null> {
+  async updateOrder(clients: ApiClients, orderNumber: string, data: Partial<Order>): Promise<Order> {
     try {
-      const response = await clients.ordersApi.put(`/orders/${orderNumber}`, data)
+      const response = await clients.ordersApi.put(`/${orderNumber}`, data)
       return response.order as Order
     } catch (error) {
-      console.error('Error updating order:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to update order'))
     }
   },
 
   async deleteOrder(clients: ApiClients, orderNumber: string): Promise<boolean> {
     try {
-      await clients.ordersApi.delete(`/orders/${orderNumber}`)
+      await clients.ordersApi.delete(`/${orderNumber}`)
       return true
     } catch (error) {
-      console.error('Error deleting order:', error)
-      return false
+      throw new Error(extractErrorMessage(error, 'Failed to delete order'))
     }
   },
 

@@ -21,6 +21,11 @@ const InvoicesPage: React.FC = () => {
 
   useEffect(() => {
     const fetchInvoices = async () => {
+      if (!apiCredentials?.gptlessToken) {
+        setError('Invoice service unavailable: GPTless API credentials are not configured for this account.')
+        setLoading(false)
+        return
+      }
       try {
         setLoading(true)
         setError(null)
@@ -28,8 +33,7 @@ const InvoicesPage: React.FC = () => {
         const data = await invoicesService.getInvoices(clients)
         setInvoices(data)
       } catch (err) {
-        setError('Failed to load invoices')
-        console.error(err)
+        setError(err instanceof Error ? err.message : 'Failed to load invoices')
       } finally {
         setLoading(false)
       }
