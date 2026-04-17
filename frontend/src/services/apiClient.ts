@@ -1,11 +1,23 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
-import { ApiTokens } from '@/context/AuthContext'
+
+export interface ApiTokens {
+  ordersApi?: string
+  dispatchApi?: string
+  invoicesApi?: string
+}
+
+let onUnauthorized: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
+}
 
 interface ApiClientConfig {
   baseURL: string
   apiKey?: string
   token?: string
   authType?: 'bearer' | 'apiKey'
+  timeout?: number
   credentials?: {
     chalksnifferKey?: string
     gptlessToken?: string
@@ -21,7 +33,7 @@ export class ApiClient {
     this.config = config
     this.instance = axios.create({
       baseURL: config.baseURL,
-      timeout: 10000,
+      timeout: config.timeout ?? 10000,
     })
 
     // Add interceptors
@@ -61,6 +73,9 @@ export class ApiClient {
 
   private handleError(error: AxiosError) {
     console.error('API Error:', error.message)
+    if (error.response?.status === 401) {
+      onUnauthorized?.()
+    }
     return Promise.reject(error)
   }
 
@@ -111,6 +126,7 @@ export const createApiClients = (
   authApi: new ApiClient({
     baseURL: 'http://localhost:3000/api/auth',
     authType: 'bearer',
+    timeout: 60000,
   }),
   // Local order management
   ordersApi: new ApiClient({

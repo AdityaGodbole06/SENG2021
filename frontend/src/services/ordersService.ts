@@ -5,7 +5,7 @@ export const ordersService = {
   // Get all orders
   async getOrders(clients: ApiClients): Promise<Order[]> {
     try {
-      const response = await clients.ordersApi.get('/orders')
+      const response = await clients.ordersApi.get('/')
       return response as Order[]
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -16,7 +16,7 @@ export const ordersService = {
   // Get order by ID
   async getOrderById(clients: ApiClients, id: string): Promise<Order | null> {
     try {
-      const response = await clients.ordersApi.get(`/orders/${id}`)
+      const response = await clients.ordersApi.get(`/${id}`)
       return response as Order
     } catch (error) {
       console.error('Error fetching order:', error)
@@ -30,7 +30,7 @@ export const ordersService = {
     data: Omit<Order, 'id' | 'status'>
   ): Promise<Order | null> {
     try {
-      const response = await clients.ordersApi.post('/orders', {
+      const response = await clients.ordersApi.post('/', {
         ...data,
         status: 'pending',
       })
@@ -44,7 +44,7 @@ export const ordersService = {
   // Update order
   async updateOrder(clients: ApiClients, id: string, data: Partial<Order>): Promise<Order | null> {
     try {
-      const response = await clients.ordersApi.put(`/orders/${id}`, data)
+      const response = await clients.ordersApi.put(`/${id}`, data)
       return response as Order
     } catch (error) {
       console.error('Error updating order:', error)
@@ -55,7 +55,7 @@ export const ordersService = {
   // Delete order
   async deleteOrder(clients: ApiClients, id: string): Promise<boolean> {
     try {
-      await clients.ordersApi.delete(`/orders/${id}`)
+      await clients.ordersApi.delete(`/${id}`)
       return true
     } catch (error) {
       console.error('Error deleting order:', error)

@@ -1,78 +1,67 @@
 import { ApiClients } from './apiClient'
 import { Invoice } from '@/types'
+import { AxiosError } from 'axios'
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof AxiosError) {
+    return error.response?.data?.error ?? error.message ?? fallback
+  }
+  if (error instanceof Error) return error.message
+  return fallback
+}
 
 export const invoicesService = {
-  // Get all invoices
   async getInvoices(clients: ApiClients): Promise<Invoice[]> {
     try {
       const response = await clients.invoicesApi.get('/invoices')
       return Array.isArray(response) ? response : (response as any)?.data || []
     } catch (error) {
-      console.error('Error fetching invoices:', error)
-      return []
+      throw new Error(extractErrorMessage(error, 'Failed to fetch invoices'))
     }
   },
 
-  // Get invoice by ID
   async getInvoiceById(clients: ApiClients, id: string): Promise<Invoice | null> {
     try {
       const response = await clients.invoicesApi.get(`/invoices/${id}`)
       return response as Invoice
     } catch (error) {
-      console.error('Error fetching invoice:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to fetch invoice'))
     }
   },
 
-  // Create invoice
-  async createInvoice(
-    clients: ApiClients,
-    data: Omit<Invoice, 'id' | 'status'>
-  ): Promise<Invoice | null> {
+  async createInvoice(clients: ApiClients, data: Omit<Invoice, 'id' | 'status'>): Promise<Invoice> {
     try {
-      const response = await clients.invoicesApi.post('/invoices', {
-        ...data,
-        status: 'unpaid',
-      })
+      const response = await clients.invoicesApi.post('/invoices', { ...data, status: 'unpaid' })
       return response as Invoice
     } catch (error) {
-      console.error('Error creating invoice:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to create invoice'))
     }
   },
 
-  // Update invoice
-  async updateInvoice(clients: ApiClients, id: string, data: Partial<Invoice>): Promise<Invoice | null> {
+  async updateInvoice(clients: ApiClients, id: string, data: Partial<Invoice>): Promise<Invoice> {
     try {
       const response = await clients.invoicesApi.put(`/invoices/${id}`, data)
       return response as Invoice
     } catch (error) {
-      console.error('Error updating invoice:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to update invoice'))
     }
   },
 
-  // Delete invoice
   async deleteInvoice(clients: ApiClients, id: string): Promise<boolean> {
     try {
       await clients.invoicesApi.delete(`/invoices/${id}`)
       return true
     } catch (error) {
-      console.error('Error deleting invoice:', error)
-      return false
+      throw new Error(extractErrorMessage(error, 'Failed to delete invoice'))
     }
   },
 
-  // Mark invoice as paid
-  async markAsPaid(clients: ApiClients, id: string): Promise<Invoice | null> {
+  async markAsPaid(clients: ApiClients, id: string): Promise<Invoice> {
     try {
-      const response = await clients.invoicesApi.patch(`/invoices/${id}`, {
-        status: 'paid',
-      })
+      const response = await clients.invoicesApi.patch(`/invoices/${id}`, { status: 'paid' })
       return response as Invoice
     } catch (error) {
-      console.error('Error marking invoice as paid:', error)
-      return null
+      throw new Error(extractErrorMessage(error, 'Failed to mark invoice as paid'))
     }
   },
 }

@@ -20,6 +20,10 @@ export interface AuthResponse {
     name: string
     role: string
   }
+  apiCredentials?: {
+    chalksnifferKey?: string
+    gptlessToken?: string
+  }
 }
 
 export const authService = {
