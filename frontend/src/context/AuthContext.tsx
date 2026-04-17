@@ -28,8 +28,18 @@ export interface ApiTokens {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [role, setRole] = useState<UserRole>('buyer')
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem('user')
+    return stored ? JSON.parse(stored) : null
+  })
+  const [role, setRole] = useState<UserRole>(() => {
+    const stored = localStorage.getItem('user')
+    if (stored) {
+      const user = JSON.parse(stored)
+      return user.role === 'supplier' ? 'supplier' : 'buyer'
+    }
+    return 'buyer'
+  })
   const [tokens, setTokensState] = useState<ApiTokens>(() => {
     const stored = localStorage.getItem('api_tokens')
     return stored ? JSON.parse(stored) : {}
