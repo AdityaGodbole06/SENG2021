@@ -345,10 +345,12 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Create Order Modal */}
-      {isCreateModalOpen && (
-        <Modal onClose={() => setIsCreateModalOpen(false)}>
-          <div className='min-w-96'>
-            <h2 className='text-2xl font-bold mb-4 text-slate-900 dark:text-slate-50'>Create New Order</h2>
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title='Create New Order'
+      >
+        <div className='min-w-96'>
 
             <div className='space-y-4'>
               <div>
@@ -434,17 +436,16 @@ const OrdersPage: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </Modal>
-      )}
+        </div>
+      </Modal>
 
       {/* Edit Order Modal */}
-      {isEditModalOpen && editingOrder && (
-        <Modal onClose={() => setIsEditModalOpen(false)}>
-          <div className='min-w-96'>
-            <h2 className='text-2xl font-bold mb-4 text-slate-900 dark:text-slate-50'>
-              Edit Order: {editingOrder.orderNumber}
-            </h2>
+      <Modal
+        isOpen={isEditModalOpen && !!editingOrder}
+        onClose={() => setIsEditModalOpen(false)}
+        title={`Edit Order: ${editingOrder?.orderNumber || ''}`}
+      >
+        <div className='min-w-96'>
 
             <div className='space-y-4'>
               <div>
@@ -519,9 +520,8 @@ const OrdersPage: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </div>
-        </Modal>
-      )}
+        </div>
+      </Modal>
     </div>
   )
 }
