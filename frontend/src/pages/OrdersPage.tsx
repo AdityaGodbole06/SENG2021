@@ -51,14 +51,24 @@ const OrdersPage: React.FC = () => {
   }
 
   const handleCreateOrder = async () => {
+    console.log('handleCreateOrder called', { tokens, apiCredentials })
     if (!formData.orderNumber || !formData.buyerParty || !formData.sellerParty || !formData.amount) {
+      console.log('Validation failed', formData)
       setError('Please fill in all required fields')
       return
     }
 
     try {
       setError(null)
+      console.log('Creating API clients with tokens:', tokens)
       const clients = createApiClients(tokens || {}, apiCredentials || {})
+      console.log('Calling orderService.createOrder with:', {
+        orderNumber: formData.orderNumber,
+        buyerParty: formData.buyerParty,
+        sellerParty: formData.sellerParty,
+        amount: parseFloat(formData.amount),
+        orderDate: formData.orderDate,
+      })
       const result = await orderService.createOrder(clients, {
         orderNumber: formData.orderNumber,
         buyerParty: formData.buyerParty,
@@ -66,10 +76,9 @@ const OrdersPage: React.FC = () => {
         amount: parseFloat(formData.amount),
         orderDate: formData.orderDate,
         deliveryDate: formData.deliveryDate || undefined,
-        status: 'pending',
-        orderID: '',
       })
 
+      console.log('Order creation result:', result)
       if (result) {
         alert('Order created successfully!')
         setFormData({
@@ -86,8 +95,8 @@ const OrdersPage: React.FC = () => {
         setError('Failed to create order')
       }
     } catch (err) {
-      setError('Error creating order')
-      console.error(err)
+      console.error('Order creation error:', err)
+      setError(`Error creating order: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -351,7 +360,11 @@ const OrdersPage: React.FC = () => {
         title='Create New Order'
       >
         <div className='min-w-96'>
-
+            {error && (
+              <div className='mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
+                {error}
+              </div>
+            )}
             <div className='space-y-4'>
               <div>
                 <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
@@ -446,7 +459,11 @@ const OrdersPage: React.FC = () => {
         title={`Edit Order: ${editingOrder?.orderNumber || ''}`}
       >
         <div className='min-w-96'>
-
+            {error && (
+              <div className='mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
+                {error}
+              </div>
+            )}
             <div className='space-y-4'>
               <div>
                 <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
