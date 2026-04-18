@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Download, History } from 'lucide-react'
+import { Plus, Edit2, Trash2, Download, History, Truck } from 'lucide-react'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -8,9 +8,11 @@ import { Modal } from '@/components/ui/Modal'
 import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { orderService, Order } from '@/services/orderService'
+import { dispatchService } from '@/services/dispatchService'
 
 const OrdersPage: React.FC = () => {
-  const { tokens, apiCredentials } = useAuth()
+  const { tokens, apiCredentials, role } = useAuth()
+  const isSupplier = role === 'supplier'
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [orders, setOrders] = useState<Order[]>([])
@@ -20,6 +22,18 @@ const OrdersPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [dispatchOrder, setDispatchOrder] = useState<Order | null>(null)
+  const [dispatchForm, setDispatchForm] = useState({
+    deliveryPartyId: '',
+    deliveryPartyName: '',
+    dispatchDate: new Date().toISOString().split('T')[0],
+    expectedArrival: '',
+    itemSku: '',
+    itemDescription: '',
+    itemQuantity: '1',
+    itemUom: 'EA',
+  })
+  const [dispatchLoading, setDispatchLoading] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -149,6 +163,48 @@ const OrdersPage: React.FC = () => {
       deliveryDate: order.deliveryDate?.split('T')[0] || '',
     })
     setIsEditModalOpen(true)
+  }
+
+  const handleCreateDispatch = async () => {
+    if (!dispatchOrder) return
+    if (!dispatchForm.deliveryPartyId || !dispatchForm.deliveryPartyName || !dispatchForm.dispatchDate) {
+      setError('Please fill in all required dispatch fields')
+      return
+    }
+    try {
+      setDispatchLoading(true)
+      setError(null)
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
+      await dispatchService.createDispatch(clients, {
+        externalRef: dispatchOrder.orderNumber,
+        despatchParty: { partyId: tokens?.dispatchApi || '', name: dispatchOrder.sellerParty },
+        deliveryParty: { partyId: dispatchForm.deliveryPartyId, name: dispatchForm.deliveryPartyName },
+        dispatchDate: dispatchForm.dispatchDate,
+        expectedDeliveryDate: dispatchForm.expectedArrival || undefined,
+        items: [{
+          sku: dispatchForm.itemSku || 'ITEM-001',
+          description: dispatchForm.itemDescription || dispatchOrder.orderNumber,
+          quantity: parseInt(dispatchForm.itemQuantity) || 1,
+          uom: dispatchForm.itemUom || 'EA',
+        }],
+      } as any)
+      setDispatchOrder(null)
+      setDispatchForm({
+        deliveryPartyId: '',
+        deliveryPartyName: '',
+        dispatchDate: new Date().toISOString().split('T')[0],
+        expectedArrival: '',
+        itemSku: '',
+        itemDescription: '',
+        itemQuantity: '1',
+        itemUom: 'EA',
+      })
+      alert('Dispatch created successfully!')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create dispatch')
+    } finally {
+      setDispatchLoading(false)
+    }
   }
 
   const filteredOrders = orders.filter((order) => {
@@ -290,6 +346,15 @@ const OrdersPage: React.FC = () => {
                             >
                               <Edit2 size={18} className='text-blue-600' />
                             </button>
+                            {isSupplier && (
+                              <button
+                                onClick={() => setDispatchOrder(order)}
+                                className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
+                                title='Create Dispatch'
+                              >
+                                <Truck size={18} className='text-orange-500' />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDownloadXML(order)}
                               className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
@@ -507,6 +572,88 @@ const OrdersPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+        </div>
+      </Modal>
+
+      {/* Create Dispatch Modal */}
+      <Modal
+        isOpen={!!dispatchOrder}
+        onClose={() => setDispatchOrder(null)}
+        title={`Create Dispatch for ${dispatchOrder?.orderNumber || ''}`}
+      >
+        <div className='min-w-96 space-y-4'>
+          {error && (
+            <div className='p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
+              {error}
+            </div>
+          )}
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Order Reference</label>
+            <Input value={dispatchOrder?.orderNumber || ''} disabled />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Delivery Party ID *</label>
+            <Input
+              placeholder='BUYER001'
+              value={dispatchForm.deliveryPartyId}
+              onChange={e => setDispatchForm({ ...dispatchForm, deliveryPartyId: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Delivery Party Name *</label>
+            <Input
+              placeholder='Buyer company name'
+              value={dispatchForm.deliveryPartyName}
+              onChange={e => setDispatchForm({ ...dispatchForm, deliveryPartyName: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Dispatch Date *</label>
+            <Input
+              type='date'
+              value={dispatchForm.dispatchDate}
+              onChange={e => setDispatchForm({ ...dispatchForm, dispatchDate: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Expected Arrival</label>
+            <Input
+              type='date'
+              value={dispatchForm.expectedArrival}
+              onChange={e => setDispatchForm({ ...dispatchForm, expectedArrival: e.target.value })}
+            />
+          </div>
+          <hr className='border-slate-200 dark:border-slate-700' />
+          <p className='text-sm font-medium text-slate-700 dark:text-slate-300'>Item Details</p>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>SKU</label>
+            <Input
+              placeholder='ITEM-001'
+              value={dispatchForm.itemSku}
+              onChange={e => setDispatchForm({ ...dispatchForm, itemSku: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Description</label>
+            <Input
+              placeholder='Item description'
+              value={dispatchForm.itemDescription}
+              onChange={e => setDispatchForm({ ...dispatchForm, itemDescription: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Quantity</label>
+            <Input
+              type='number'
+              placeholder='1'
+              value={dispatchForm.itemQuantity}
+              onChange={e => setDispatchForm({ ...dispatchForm, itemQuantity: e.target.value })}
+            />
+          </div>
+          <div className='flex gap-3 pt-2'>
+            <Button variant='ghost' onClick={() => setDispatchOrder(null)} fullWidth>Cancel</Button>
+            <Button onClick={handleCreateDispatch} fullWidth isLoading={dispatchLoading}>Create Dispatch</Button>
+          </div>
         </div>
       </Modal>
     </div>

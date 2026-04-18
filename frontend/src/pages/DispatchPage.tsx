@@ -105,6 +105,7 @@ const DispatchPage: React.FC = () => {
             sku: formData.itemSku || 'ITEM-001',
             description: formData.itemDescription || 'Order Items',
             quantity: parseInt(formData.itemQuantity) || 1,
+            uom: formData.itemUom || 'EA',
           },
         ],
       }
@@ -280,6 +281,7 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
     itemSku: '',
     itemDescription: '',
     itemQuantity: '1',
+    itemUom: 'EA',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -299,6 +301,7 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
       itemSku: '',
       itemDescription: '',
       itemQuantity: '1',
+      itemUom: 'EA',
     })
   }
 
@@ -377,6 +380,12 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
           placeholder='1'
           value={formData.itemQuantity}
           onChange={e => setFormData({ ...formData, itemQuantity: e.target.value })}
+        />
+        <Input
+          label='Unit of Measure'
+          placeholder='EA'
+          value={formData.itemUom}
+          onChange={e => setFormData({ ...formData, itemUom: e.target.value })}
         />
       </form>
     </Modal>
