@@ -11,7 +11,7 @@ import { createApiClients } from '@/services/apiClient'
 import { dispatchService } from '@/services/dispatchService'
 
 const DispatchPage: React.FC = () => {
-  const { tokens, apiCredentials, role } = useAuth()
+  const { tokens, apiCredentials, role, user } = useAuth()
   const isSupplier = role === 'supplier'
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
@@ -88,13 +88,15 @@ const DispatchPage: React.FC = () => {
   const handleCreateDispatch = async (formData: any) => {
     try {
       const clients = createApiClients(tokens || {}, apiCredentials || {})
-      const newDispatch = await dispatchService.createDispatch(clients, {
-        despatchNumber: formData.orderNumber,
-        orderRef: formData.orderNumber,
+      const payload = {
+        externalRef: formData.orderRef,
+        despatchParty: { partyId: user?.id ?? '', name: user?.name ?? '' },
+        deliveryParty: { partyId: formData.deliveryPartyId, name: formData.deliveryPartyName },
         dispatchDate: formData.dispatchDate,
-        deliveryParty: formData.deliveryParty || '',
-        expectedArrival: formData.expectedArrival,
-      })
+        expectedDeliveryDate: formData.expectedArrival || undefined,
+        items: formData.items,
+      }
+      const newDispatch = await dispatchService.createDispatch(clients, payload as any)
       setDispatches([...dispatches, newDispatch])
       setIsCreateModalOpen(false)
     } catch (err) {
@@ -244,39 +246,60 @@ const DispatchPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateDispatch}
+        supplierName={user?.name ?? ''}
       />
     </div>
   )
+}
+
+interface DispatchItem {
+  sku: string
+  description: string
+  quantity: number
+  uom: string
 }
 
 interface CreateDispatchModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: any) => void
+  supplierName: string
 }
 
-const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const emptyItem = (): DispatchItem => ({ sku: '', description: '', quantity: 1, uom: 'EA' })
+
+const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClose, onSubmit, supplierName }) => {
   const [formData, setFormData] = useState({
-    orderNumber: '',
+    orderRef: '',
     dispatchDate: '',
     expectedArrival: '',
-    deliveryParty: '',
+    deliveryPartyId: '',
+    deliveryPartyName: '',
   })
+  const [items, setItems] = useState<DispatchItem[]>([emptyItem()])
+  const [formError, setFormError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.orderNumber || !formData.dispatchDate) {
-      alert('Please fill in required fields')
+  const handleSubmit = () => {
+    setFormError(null)
+    if (!formData.orderRef || !formData.dispatchDate || !formData.deliveryPartyId || !formData.deliveryPartyName) {
+      setFormError('Please fill in all required fields (Order Ref, Dispatch Date, Delivery Party ID and Name)')
       return
     }
-    onSubmit(formData)
-    setFormData({
-      orderNumber: '',
-      dispatchDate: '',
-      expectedArrival: '',
-      deliveryParty: '',
-    })
+    if (items.some(i => !i.sku || !i.uom || i.quantity < 1)) {
+      setFormError('Each item must have a SKU, quantity ≥ 1, and unit of measure')
+      return
+    }
+    onSubmit({ ...formData, items })
+    setFormData({ orderRef: '', dispatchDate: '', expectedArrival: '', deliveryPartyId: '', deliveryPartyName: '' })
+    setItems([emptyItem()])
   }
+
+  const updateItem = (index: number, field: keyof DispatchItem, value: string | number) => {
+    setItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item))
+  }
+
+  const addItem = () => setItems(prev => [...prev, emptyItem()])
+  const removeItem = (index: number) => setItems(prev => prev.filter((_, i) => i !== index))
 
   return (
     <Modal
@@ -285,27 +308,26 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
       title='Create Dispatch Advice'
       footer={
         <>
-          <Button variant='secondary' onClick={onClose}>
-            Cancel
-          </Button>
+          <Button variant='secondary' onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit}>Create</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className='space-y-4'>
+      <div className='space-y-4'>
+        {formError && (
+          <p className='text-sm text-red-600 dark:text-red-400'>{formError}</p>
+        )}
         <Input
-          label='Order Reference'
+          label='Order Reference *'
           placeholder='ORD-001'
-          value={formData.orderNumber}
-          onChange={e => setFormData({ ...formData, orderNumber: e.target.value })}
-          required
+          value={formData.orderRef}
+          onChange={e => setFormData({ ...formData, orderRef: e.target.value })}
         />
         <Input
-          label='Dispatch Date'
+          label='Dispatch Date *'
           type='date'
           value={formData.dispatchDate}
           onChange={e => setFormData({ ...formData, dispatchDate: e.target.value })}
-          required
         />
         <Input
           label='Expected Arrival'
@@ -313,13 +335,91 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
           value={formData.expectedArrival}
           onChange={e => setFormData({ ...formData, expectedArrival: e.target.value })}
         />
-        <Input
-          label='Delivery Party'
-          placeholder='Buyer name'
-          value={formData.deliveryParty}
-          onChange={e => setFormData({ ...formData, deliveryParty: e.target.value })}
-        />
-      </form>
+        <div>
+          <p className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>Despatch Party</p>
+          <p className='text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded'>
+            {supplierName} (your account)
+          </p>
+        </div>
+        <div className='grid grid-cols-2 gap-2'>
+          <Input
+            label='Delivery Party ID *'
+            placeholder='BUYER-001'
+            value={formData.deliveryPartyId}
+            onChange={e => setFormData({ ...formData, deliveryPartyId: e.target.value })}
+          />
+          <Input
+            label='Delivery Party Name *'
+            placeholder='Buyer Co.'
+            value={formData.deliveryPartyName}
+            onChange={e => setFormData({ ...formData, deliveryPartyName: e.target.value })}
+          />
+        </div>
+
+        {/* Items */}
+        <div>
+          <div className='flex justify-between items-center mb-2'>
+            <p className='text-sm font-medium text-slate-700 dark:text-slate-300'>Items *</p>
+            <button
+              type='button'
+              onClick={addItem}
+              className='text-xs text-blue-600 hover:underline'
+            >
+              + Add Item
+            </button>
+          </div>
+          <div className='space-y-2'>
+            {items.map((item, idx) => (
+              <div key={idx} className='grid grid-cols-12 gap-1 items-end'>
+                <div className='col-span-3'>
+                  <Input
+                    label={idx === 0 ? 'SKU *' : ''}
+                    placeholder='SKU-001'
+                    value={item.sku}
+                    onChange={e => updateItem(idx, 'sku', e.target.value)}
+                  />
+                </div>
+                <div className='col-span-4'>
+                  <Input
+                    label={idx === 0 ? 'Description' : ''}
+                    placeholder='Item description'
+                    value={item.description}
+                    onChange={e => updateItem(idx, 'description', e.target.value)}
+                  />
+                </div>
+                <div className='col-span-2'>
+                  <Input
+                    label={idx === 0 ? 'Qty *' : ''}
+                    type='number'
+                    placeholder='1'
+                    value={String(item.quantity)}
+                    onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
+                  />
+                </div>
+                <div className='col-span-2'>
+                  <Input
+                    label={idx === 0 ? 'UOM *' : ''}
+                    placeholder='EA'
+                    value={item.uom}
+                    onChange={e => updateItem(idx, 'uom', e.target.value)}
+                  />
+                </div>
+                <div className='col-span-1 pb-1'>
+                  {items.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => removeItem(idx)}
+                      className='p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded'
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </Modal>
   )
 }

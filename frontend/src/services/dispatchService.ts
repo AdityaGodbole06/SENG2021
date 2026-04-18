@@ -4,7 +4,14 @@ import { AxiosError } from 'axios'
 
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof AxiosError) {
-    return error.response?.data?.error ?? error.message ?? fallback
+    const errData = error.response?.data?.error
+    if (errData) {
+      if (typeof errData === 'string') return errData
+      if (typeof errData === 'object') {
+        return errData.message ?? errData.details?.[0] ?? fallback
+      }
+    }
+    return error.message ?? fallback
   }
   if (error instanceof Error) return error.message
   return fallback
