@@ -23,12 +23,18 @@ async function registerWithExternalAPIs() {
   try {
     // Register with GPTless
     console.log('Registering with GPTless...');
-    const gptRes = await axios.post(
-      'https://api.gptless.au/v1/auth/register',
-      { groupName: 'DigitalBook' },
-      { headers: { APIToken: 'developer' } }
-    );
-    credentials.gptlessToken = gptRes.data.apiToken || gptRes.data.token;
+    const devToken = process.env.GPTLESS_DEV_TOKEN;
+    if (!devToken) {
+      console.warn('GPTLESS_DEV_TOKEN not set — skipping GPTless registration');
+      credentials.gptlessToken = null;
+    } else {
+      const gptRes = await axios.post(
+        'https://api.gptless.au/v1/auth/register',
+        { groupName: process.env.GPTLESS_GROUP_NAME || 'DigitalBook' },
+        { headers: { APIdevToken: devToken } }
+      );
+      credentials.gptlessToken = gptRes.data.APItoken || gptRes.data.apiToken || gptRes.data.token;
+    }
     console.log('GPTless token obtained');
   } catch (error) {
     console.error('GPTless registration error:', error.message);

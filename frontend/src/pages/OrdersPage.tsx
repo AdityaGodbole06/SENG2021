@@ -123,19 +123,24 @@ const OrdersPage: React.FC = () => {
     }
   }
 
-  const handleDownloadXML = (order: Order) => {
-    if (!order.xmlDocument) {
-      alert('No XML document available for this order')
-      return
+  const handleDownloadXML = async (order: Order) => {
+    try {
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
+      const full = await orderService.getOrderByNumber(clients, order.orderNumber)
+      if (!full?.xmlDocument) {
+        setError('No XML document available for this order')
+        return
+      }
+      const element = document.createElement('a')
+      element.setAttribute('href', 'data:text/xml;charset=utf-8,' + encodeURIComponent(full.xmlDocument))
+      element.setAttribute('download', `${order.orderNumber}.xml`)
+      element.style.display = 'none'
+      document.body.appendChild(element)
+      element.click()
+      document.body.removeChild(element)
+    } catch {
+      setError('Failed to download XML for this order')
     }
-
-    const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/xml;charset=utf-8,' + encodeURIComponent(order.xmlDocument))
-    element.setAttribute('download', `${order.orderNumber}.xml`)
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
   }
 
   const openEditModal = (order: Order) => {

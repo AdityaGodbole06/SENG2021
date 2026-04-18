@@ -1,4 +1,5 @@
 // Dev-only launcher: starts app with in-memory MongoDB
+require('dotenv').config();
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 async function main() {
