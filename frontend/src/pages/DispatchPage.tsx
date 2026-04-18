@@ -88,13 +88,27 @@ const DispatchPage: React.FC = () => {
   const handleCreateDispatch = async (formData: any) => {
     try {
       const clients = createApiClients(tokens || {}, apiCredentials || {})
-      const newDispatch = await dispatchService.createDispatch(clients, {
-        despatchNumber: formData.orderNumber,
-        orderRef: formData.orderNumber,
+      const payload = {
+        externalRef: formData.orderRef,
+        despatchParty: {
+          partyId: tokens?.dispatchApi || 'UNKNOWN',
+          name: formData.despatchPartyName,
+        },
+        deliveryParty: {
+          partyId: formData.deliveryPartyId,
+          name: formData.deliveryPartyName,
+        },
         dispatchDate: formData.dispatchDate,
-        deliveryParty: formData.deliveryParty || '',
-        expectedArrival: formData.expectedArrival,
-      })
+        expectedDeliveryDate: formData.expectedArrival || undefined,
+        items: [
+          {
+            sku: formData.itemSku || 'ITEM-001',
+            description: formData.itemDescription || 'Order Items',
+            quantity: parseInt(formData.itemQuantity) || 1,
+          },
+        ],
+      }
+      const newDispatch = await dispatchService.createDispatch(clients, payload as any)
       setDispatches([...dispatches, newDispatch])
       setIsCreateModalOpen(false)
     } catch (err) {
@@ -257,24 +271,34 @@ interface CreateDispatchModalProps {
 
 const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    orderNumber: '',
+    orderRef: '',
+    despatchPartyName: '',
+    deliveryPartyId: '',
+    deliveryPartyName: '',
     dispatchDate: '',
     expectedArrival: '',
-    deliveryParty: '',
+    itemSku: '',
+    itemDescription: '',
+    itemQuantity: '1',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.orderNumber || !formData.dispatchDate) {
-      alert('Please fill in required fields')
+    if (!formData.despatchPartyName || !formData.deliveryPartyName || !formData.deliveryPartyId || !formData.dispatchDate) {
+      alert('Please fill in all required fields')
       return
     }
     onSubmit(formData)
     setFormData({
-      orderNumber: '',
+      orderRef: '',
+      despatchPartyName: '',
+      deliveryPartyId: '',
+      deliveryPartyName: '',
       dispatchDate: '',
       expectedArrival: '',
-      deliveryParty: '',
+      itemSku: '',
+      itemDescription: '',
+      itemQuantity: '1',
     })
   }
 
@@ -296,28 +320,63 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
         <Input
           label='Order Reference'
           placeholder='ORD-001'
-          value={formData.orderNumber}
-          onChange={e => setFormData({ ...formData, orderNumber: e.target.value })}
+          value={formData.orderRef}
+          onChange={e => setFormData({ ...formData, orderRef: e.target.value })}
+        />
+        <Input
+          label='Despatch Party Name *'
+          placeholder='Your company name'
+          value={formData.despatchPartyName}
+          onChange={e => setFormData({ ...formData, despatchPartyName: e.target.value })}
           required
         />
         <Input
-          label='Dispatch Date'
+          label='Delivery Party ID *'
+          placeholder='BUYER001'
+          value={formData.deliveryPartyId}
+          onChange={e => setFormData({ ...formData, deliveryPartyId: e.target.value })}
+          required
+        />
+        <Input
+          label='Delivery Party Name *'
+          placeholder='Buyer company name'
+          value={formData.deliveryPartyName}
+          onChange={e => setFormData({ ...formData, deliveryPartyName: e.target.value })}
+          required
+        />
+        <Input
+          label='Dispatch Date *'
           type='date'
           value={formData.dispatchDate}
           onChange={e => setFormData({ ...formData, dispatchDate: e.target.value })}
           required
         />
         <Input
-          label='Expected Arrival'
+          label='Expected Arrival Date'
           type='date'
           value={formData.expectedArrival}
           onChange={e => setFormData({ ...formData, expectedArrival: e.target.value })}
         />
+        <hr className='border-slate-200 dark:border-slate-700' />
+        <p className='text-sm font-medium text-slate-700 dark:text-slate-300'>Item Details</p>
         <Input
-          label='Delivery Party'
-          placeholder='Buyer name'
-          value={formData.deliveryParty}
-          onChange={e => setFormData({ ...formData, deliveryParty: e.target.value })}
+          label='SKU'
+          placeholder='ITEM-001'
+          value={formData.itemSku}
+          onChange={e => setFormData({ ...formData, itemSku: e.target.value })}
+        />
+        <Input
+          label='Description'
+          placeholder='Item description'
+          value={formData.itemDescription}
+          onChange={e => setFormData({ ...formData, itemDescription: e.target.value })}
+        />
+        <Input
+          label='Quantity'
+          type='number'
+          placeholder='1'
+          value={formData.itemQuantity}
+          onChange={e => setFormData({ ...formData, itemQuantity: e.target.value })}
         />
       </form>
     </Modal>
