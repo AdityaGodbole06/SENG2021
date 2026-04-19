@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { SlideOver } from '@/components/ui/SlideOver'
 import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { dispatchService } from '@/services/dispatchService'
@@ -20,6 +21,8 @@ const ReceiptAdvicePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDispatch, setSelectedDispatch] = useState<DespatchAdvice | null>(null)
+  const [slideOverReceipt, setSlideOverReceipt] = useState<ReceiptAdvice | null>(null)
+  const [slideOverDispatch, setSlideOverDispatch] = useState<DespatchAdvice | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -171,7 +174,8 @@ ${receipt.receivedItems.map(i => `    <Item>
               {filteredDispatches.map(dispatch => (
                 <tr
                   key={dispatch.id}
-                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
+                  onClick={() => setSlideOverDispatch(dispatch)}
+                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer'
                 >
                   <td className='px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-50'>
                     {dispatch.despatchNumber}
@@ -188,7 +192,7 @@ ${receipt.receivedItems.map(i => `    <Item>
                     </Badge>
                   </td>
                   {isBuyer && (
-                    <td className='px-6 py-4 text-sm'>
+                    <td className='px-6 py-4 text-sm' onClick={e => e.stopPropagation()}>
                       {submittedIds.has(dispatch.id) ? (
                         <span className='flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium'>
                           <CheckCircle size={14} /> Submitted
@@ -235,7 +239,8 @@ ${receipt.receivedItems.map(i => `    <Item>
                 {receipts.map(receipt => (
                   <tr
                     key={receipt.id}
-                    className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
+                    onClick={() => setSlideOverReceipt(receipt)}
+                    className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer'
                   >
                     <td className='px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-50'>
                       {receipt.id}
@@ -249,7 +254,7 @@ ${receipt.receivedItems.map(i => `    <Item>
                     <td className='px-6 py-4 text-sm text-slate-600 dark:text-slate-400'>
                       {receipt.receivedItems.length} item(s)
                     </td>
-                    <td className='px-6 py-4 text-sm'>
+                    <td className='px-6 py-4 text-sm' onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => handleDownloadReceipt(receipt)}
                         className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
@@ -276,6 +281,97 @@ ${receipt.receivedItems.map(i => `    <Item>
           apiCredentials={apiCredentials}
         />
       )}
+
+      {/* Dispatch Detail SlideOver */}
+      <SlideOver
+        isOpen={!!slideOverDispatch}
+        onClose={() => setSlideOverDispatch(null)}
+        title={slideOverDispatch ? `Dispatch ${slideOverDispatch.despatchNumber}` : 'Dispatch Details'}
+      >
+        {slideOverDispatch && (
+          <div className='space-y-6'>
+            <dl className='grid grid-cols-2 gap-4'>
+              {[
+                ['Dispatch #', slideOverDispatch.despatchNumber],
+                ['Order Ref', slideOverDispatch.orderRef || '—'],
+                ['Delivery Party', slideOverDispatch.deliveryParty || '—'],
+                ['Dispatch Date', slideOverDispatch.dispatchDate || '—'],
+                ['Expected Arrival', slideOverDispatch.expectedArrival || '—'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className='text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400'>{label}</dt>
+                  <dd className='mt-1 text-sm font-medium text-slate-900 dark:text-slate-50'>{value}</dd>
+                </div>
+              ))}
+              <div>
+                <dt className='text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400'>Status</dt>
+                <dd className='mt-1'><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{slideOverDispatch.status.replace('_', ' ')}</Badge></dd>
+              </div>
+            </dl>
+            {slideOverDispatch.items && slideOverDispatch.items.length > 0 && (
+              <div>
+                <h3 className='text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3'>Items</h3>
+                <div className='space-y-2'>
+                  {slideOverDispatch.items.map((item, idx) => (
+                    <div key={idx} className='p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm'>
+                      <div className='font-medium text-slate-900 dark:text-slate-50'>SKU: {(item as any).sku || '—'}</div>
+                      <div className='text-slate-500 dark:text-slate-400'>Qty: {(item as any).deliveredQuantity ?? (item as any).quantity ?? '—'} {(item as any).uom || ''}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideOver>
+
+      {/* Receipt Detail SlideOver */}
+      <SlideOver
+        isOpen={!!slideOverReceipt}
+        onClose={() => setSlideOverReceipt(null)}
+        title={slideOverReceipt ? `Receipt ${slideOverReceipt.id}` : 'Receipt Details'}
+      >
+        {slideOverReceipt && (
+          <div className='space-y-6'>
+            <dl className='grid grid-cols-2 gap-4'>
+              {[
+                ['Receipt ID', slideOverReceipt.id],
+                ['Dispatch ID', slideOverReceipt.dispatchAdviceId],
+                ['Receipt Date', slideOverReceipt.receiptDate],
+                ['Submitted', slideOverReceipt.submittedAt ? new Date(slideOverReceipt.submittedAt).toLocaleDateString() : '—'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className='text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400'>{label}</dt>
+                  <dd className='mt-1 text-sm font-medium text-slate-900 dark:text-slate-50 break-all'>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div>
+              <h3 className='text-sm font-semibold text-slate-900 dark:text-slate-50 mb-3'>Received Items</h3>
+              <div className='space-y-2'>
+                {slideOverReceipt.receivedItems.map((item, idx) => (
+                  <div key={idx} className='p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm'>
+                    <div className='font-medium text-slate-900 dark:text-slate-50'>SKU: {item.sku}</div>
+                    <div className='text-slate-500 dark:text-slate-400'>Qty: {item.quantityReceived} {item.uom}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {slideOverReceipt.notes && (
+              <div>
+                <h3 className='text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2'>Notes</h3>
+                <p className='text-sm text-slate-600 dark:text-slate-400'>{slideOverReceipt.notes}</p>
+              </div>
+            )}
+            <button
+              onClick={() => handleDownloadReceipt(slideOverReceipt)}
+              className='flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline'
+            >
+              <Download size={16} /> Download XML
+            </button>
+          </div>
+        )}
+      </SlideOver>
     </div>
   )
 }
