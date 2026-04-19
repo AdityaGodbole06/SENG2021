@@ -4,6 +4,7 @@ const router = express.Router();
 const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const AuditService = require('../services/auditService');
+const Invoice = require('../models/Invoice');
 
 const auditService = new AuditService();
 
@@ -139,11 +140,21 @@ router.post('/invoices', async (req, res) => {
       return res.status(401).json({ error: 'Missing GPTless credentials' });
     }
 
-    // Validate fulfillment before generating invoice
-    const { dispatchAdviceId } = req.body;
+    const {
+      orderId,
+      invoiceNumber,
+      invoiceDate,
+      dueDate,
+      totalAmount,
+      buyerParty,
+      sellerParty,
+      buyerABN,
+      sellerABN,
+      dispatchAdviceId,
+    } = req.body;
 
+    // Validate fulfillment before generating invoice
     if (dispatchAdviceId) {
-      // Check if despatch advice exists
       const despatch = await DespatchAdvice.findOne({ dispatchAdviceId });
       if (!despatch) {
         return res.status(404).json({
@@ -151,8 +162,6 @@ router.post('/invoices', async (req, res) => {
           details: 'Despatch Advice not found',
         });
       }
-
-      // Check if receipt advice exists (fulfillment is complete)
       const receipt = await ReceiptAdvice.findOne({ dispatchAdviceId });
       if (!receipt) {
         return res.status(409).json({
@@ -160,30 +169,76 @@ router.post('/invoices', async (req, res) => {
           details: 'Cannot generate invoice without a submitted Receipt Advice. Fulfillment must be completed first.',
         });
       }
-
-      // Log invoice generation
-      await auditService.log(
-        'CREATE_INVOICE',
-        'INVOICE',
-        `INV-${req.body.invoiceNumber || 'PENDING'}`,
-        req.party?.partyId || 'SYSTEM',
-        { dispatchAdviceId },
-        `Invoice generation initiated for ${dispatchAdviceId}`
-      );
     }
+
+    const amount = parseFloat(totalAmount) || 0;
+    const gptlessBody = {
+      InvoiceData: {
+        supplier: { name: sellerParty || 'Supplier', ABN: sellerABN || '00000000000' },
+        customer: { name: buyerParty || 'Buyer', ABN: buyerABN || '00000000000' },
+        issueDate: invoiceDate,
+        dueDate: dueDate || invoiceDate,
+        totalAmount: amount,
+        currency: 'AUD',
+        lines: [
+          {
+            lineId: '1',
+            description: orderId ? `Order: ${orderId}` : 'Invoice Line',
+            quantity: 1,
+            unitPrice: amount,
+            lineTotal: amount,
+          },
+        ],
+      },
+    };
 
     const response = await axios.post(
       'https://api.gptless.au/v1/invoices/generate',
-      req.body,
+      gptlessBody,
       {
         headers: {
-          'APIToken': gptlessToken,
+          APIToken: gptlessToken,
           'Content-Type': 'application/json',
         },
       }
     );
 
-    res.json(response.data);
+    // Extract invoice ID from XML response
+    const xmlData = typeof response.data === 'string' ? response.data : '';
+    const idMatch = xmlData.match(/<cbc:ID>(\d+)<\/cbc:ID>/);
+    const gptlessId = idMatch ? idMatch[1] : `GPT-${Date.now()}`;
+    const finalInvoiceNumber = invoiceNumber || `INV-${gptlessId}`;
+
+    // Store metadata in MongoDB for listing
+    let savedInvoice;
+    try {
+      savedInvoice = new Invoice({
+        invoiceNumber: finalInvoiceNumber,
+        orderId: orderId || '',
+        buyerParty: buyerParty || 'Buyer',
+        sellerParty: sellerParty || 'Supplier',
+        totalAmount: amount,
+        invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        status: 'unpaid',
+      });
+      await savedInvoice.save();
+    } catch (saveErr) {
+      console.error('Failed to save invoice metadata:', saveErr.message);
+    }
+
+    res.status(201).json({
+      id: savedInvoice?._id?.toString() || gptlessId,
+      invoiceNumber: finalInvoiceNumber,
+      orderId: orderId || '',
+      buyerParty: buyerParty || 'Buyer',
+      sellerParty: sellerParty || 'Supplier',
+      totalAmount: amount,
+      invoiceDate: invoiceDate,
+      dueDate: dueDate,
+      status: 'unpaid',
+      gptlessId,
+    });
   } catch (error) {
     console.error('Invoices proxy error:', error.message);
     res.status(error.response?.status || 500).json({
@@ -201,21 +256,26 @@ router.get('/invoices', async (req, res) => {
       return res.status(401).json({ error: 'Missing GPTless credentials' });
     }
 
-    const response = await axios.get(
-      'https://api.gptless.au/v1/invoices',
-      {
-        headers: {
-          'APIToken': gptlessToken,
-        },
-      }
-    );
+    // Return invoices stored locally from GPTless-generated invoices
+    const invoices = await Invoice.find().sort({ createdAt: -1 });
+    const mapped = invoices.map(inv => ({
+      id: inv._id.toString(),
+      invoiceNumber: inv.invoiceNumber,
+      orderId: inv.orderId || '',
+      buyerParty: inv.buyerParty,
+      sellerParty: inv.sellerParty,
+      totalAmount: inv.totalAmount,
+      invoiceDate: inv.invoiceDate?.toISOString().split('T')[0] || '',
+      dueDate: inv.dueDate?.toISOString().split('T')[0] || '',
+      status: inv.status,
+    }));
 
-    res.json(response.data);
+    res.json(mapped);
   } catch (error) {
     console.error('Invoices list proxy error:', error.message);
-    res.status(error.response?.status || 500).json({
+    res.status(500).json({
       error: 'Failed to fetch invoices',
-      details: error.response?.data || error.message,
+      details: error.message,
     });
   }
 });

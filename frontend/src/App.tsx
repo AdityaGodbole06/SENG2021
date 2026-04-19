@@ -10,6 +10,7 @@ import InvoicesPage from '@/pages/InvoicesPage'
 import AuditTrailPage from '@/pages/AuditTrailPage'
 import GuestOrderPage from '@/pages/GuestOrderPage'
 import FulfillmentTrackingPage from '@/pages/FulfillmentTrackingPage'
+import ReceiptAdvicePage from '@/pages/ReceiptAdvicePage'
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth()
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path='/invoices' element={<InvoicesPage />} />
         <Route path='/audit-trail' element={<AuditTrailPage />} />
         <Route path='/fulfillment' element={<FulfillmentTrackingPage />} />
+        <Route path='/receipt-advice' element={<ReceiptAdvicePage />} />
         <Route path='*' element={<Navigate to='/dashboard' replace />} />
       </Routes>
     </DashboardLayout>

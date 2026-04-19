@@ -21,10 +21,6 @@ const InvoicesPage: React.FC = () => {
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      if (!apiCredentials?.gptlessToken) {
-        setLoading(false)
-        return
-      }
       try {
         setLoading(true)
         setError(null)
@@ -135,16 +131,6 @@ const InvoicesPage: React.FC = () => {
         <Card className='mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'>
           <CardBody>
             <p className='text-red-600 dark:text-red-400'>{error}</p>
-          </CardBody>
-        </Card>
-      )}
-
-      {!apiCredentials?.gptlessToken && !loading && (
-        <Card className='mb-6 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'>
-          <CardBody>
-            <p className='text-blue-600 dark:text-blue-400 text-sm'>
-              Invoice generation requires GPTless API credentials. Contact your administrator to enable this feature.
-            </p>
           </CardBody>
         </Card>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Download } from 'lucide-react'
+import { Plus, Trash2, Download } from 'lucide-react'
 import { DespatchAdvice } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -38,13 +38,16 @@ const DispatchPage: React.FC = () => {
   }, [tokens, apiCredentials])
 
   const filteredDispatches = dispatches.filter(dispatch => {
-    const matchesSearch = dispatch.despatchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      dispatch.despatchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dispatch.orderRef.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = !statusFilter || dispatch.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
-  const getStatusVariant = (status: DespatchAdvice['status']): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
+  const getStatusVariant = (
+    status: DespatchAdvice['status']
+  ): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
     const variants: Record<DespatchAdvice['status'], 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
       dispatched: 'info',
       in_transit: 'default',
@@ -76,7 +79,6 @@ const DispatchPage: React.FC = () => {
   <ExpectedArrival>${dispatch.expectedArrival}</ExpectedArrival>
   <Status>${dispatch.status}</Status>
 </DespatchAdvice>`
-
     const blob = new Blob([xml], { type: 'application/xml' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -85,36 +87,32 @@ const DispatchPage: React.FC = () => {
     a.click()
   }
 
-  const handleCreateDispatch = async (formData: any) => {
-    try {
-      const clients = createApiClients(tokens || {}, apiCredentials || {})
-      const payload = {
-        externalRef: formData.orderRef,
-        despatchParty: {
-          partyId: tokens?.dispatchApi || 'UNKNOWN',
-          name: formData.despatchPartyName,
+  const handleCreateDispatch = async (formData: any): Promise<void> => {
+    const clients = createApiClients(tokens || {}, apiCredentials || {})
+    const payload = {
+      externalRef: formData.orderRef,
+      despatchParty: {
+        partyId: tokens?.dispatchApi || 'UNKNOWN',
+        name: formData.despatchPartyName,
+      },
+      deliveryParty: {
+        partyId: formData.deliveryPartyId,
+        name: formData.deliveryPartyName,
+      },
+      dispatchDate: formData.dispatchDate,
+      expectedDeliveryDate: formData.expectedArrival || undefined,
+      items: [
+        {
+          sku: formData.itemSku || 'ITEM-001',
+          description: formData.itemDescription || 'Order Items',
+          quantity: parseInt(formData.itemQuantity) || 1,
+          uom: formData.itemUom || 'EA',
         },
-        deliveryParty: {
-          partyId: formData.deliveryPartyId,
-          name: formData.deliveryPartyName,
-        },
-        dispatchDate: formData.dispatchDate,
-        expectedDeliveryDate: formData.expectedArrival || undefined,
-        items: [
-          {
-            sku: formData.itemSku || 'ITEM-001',
-            description: formData.itemDescription || 'Order Items',
-            quantity: parseInt(formData.itemQuantity) || 1,
-            uom: formData.itemUom || 'EA',
-          },
-        ],
-      }
-      const newDispatch = await dispatchService.createDispatch(clients, payload as any)
-      setDispatches([...dispatches, newDispatch])
-      setIsCreateModalOpen(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create dispatch')
+      ],
     }
+    const newDispatch = await dispatchService.createDispatch(clients, payload as any)
+    setDispatches(prev => [...prev, newDispatch])
+    setIsCreateModalOpen(false)
   }
 
   return (
@@ -202,6 +200,13 @@ const DispatchPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
+              {!loading && filteredDispatches.length === 0 && (
+                <tr>
+                  <td colSpan={6} className='px-6 py-8 text-center text-slate-500 dark:text-slate-400'>
+                    No dispatches found.
+                  </td>
+                </tr>
+              )}
               {filteredDispatches.map(dispatch => (
                 <tr
                   key={dispatch.id}
@@ -217,7 +222,7 @@ const DispatchPage: React.FC = () => {
                     {dispatch.dispatchDate}
                   </td>
                   <td className='px-6 py-4 text-sm text-slate-600 dark:text-slate-400'>
-                    {dispatch.expectedArrival}
+                    {dispatch.expectedArrival || '—'}
                   </td>
                   <td className='px-6 py-4 text-sm'>
                     <Badge variant={getStatusVariant(dispatch.status)} size='sm'>
@@ -226,26 +231,21 @@ const DispatchPage: React.FC = () => {
                   </td>
                   <td className='px-6 py-4 text-sm flex gap-2'>
                     <button
-                      onClick={() => alert('Edit functionality coming soon')}
-                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
-                      title='Edit dispatch'
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
                       onClick={() => handleDownload(dispatch)}
                       className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
                       title='Download as XML'
                     >
                       <Download size={16} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(dispatch.id)}
-                      className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
-                      title='Delete dispatch'
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {isSupplier && (
+                      <button
+                        onClick={() => handleDelete(dispatch.id)}
+                        className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                        title='Delete dispatch'
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -254,7 +254,6 @@ const DispatchPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Create Dispatch Modal */}
       <CreateDispatchModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -267,126 +266,194 @@ const DispatchPage: React.FC = () => {
 interface CreateDispatchModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: any) => Promise<void>
+}
+
+const emptyForm = {
+  orderRef: '',
+  despatchPartyName: '',
+  deliveryPartyId: '',
+  deliveryPartyName: '',
+  dispatchDate: '',
+  expectedArrival: '',
+  itemSku: '',
+  itemDescription: '',
+  itemQuantity: '1',
+  itemUom: 'EA',
 }
 
 const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    orderRef: '',
-    despatchPartyName: '',
-    deliveryPartyId: '',
-    deliveryPartyName: '',
-    dispatchDate: '',
-    expectedArrival: '',
-    itemSku: '',
-    itemDescription: '',
-    itemQuantity: '1',
-    itemUom: 'EA',
-  })
+  const [formData, setFormData] = useState(emptyForm)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.despatchPartyName || !formData.deliveryPartyName || !formData.deliveryPartyId || !formData.dispatchDate) {
-      alert('Please fill in all required fields')
+  const set = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    setFieldErrors(prev => ({ ...prev, [key]: '' }))
+  }
+
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {}
+    if (!formData.despatchPartyName.trim()) errs.despatchPartyName = 'Despatch party name is required'
+    if (!formData.deliveryPartyId.trim()) errs.deliveryPartyId = 'Delivery party ID is required'
+    if (!formData.deliveryPartyName.trim()) errs.deliveryPartyName = 'Delivery party name is required'
+    if (!formData.dispatchDate) errs.dispatchDate = 'Dispatch date is required'
+    const qty = parseInt(formData.itemQuantity)
+    if (isNaN(qty) || qty < 1) errs.itemQuantity = 'Quantity must be at least 1'
+    if (!formData.itemUom.trim()) errs.itemUom = 'Unit of measure is required'
+    return errs
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
       return
     }
-    onSubmit(formData)
-    setFormData({
-      orderRef: '',
-      despatchPartyName: '',
-      deliveryPartyId: '',
-      deliveryPartyName: '',
-      dispatchDate: '',
-      expectedArrival: '',
-      itemSku: '',
-      itemDescription: '',
-      itemQuantity: '1',
-      itemUom: 'EA',
-    })
+    setFieldErrors({})
+    setSubmitError(null)
+    setIsSubmitting(true)
+    try {
+      await onSubmit(formData)
+      setFormData(emptyForm)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to create dispatch')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const handleClose = () => {
+    setFormData(emptyForm)
+    setFieldErrors({})
+    setSubmitError(null)
+    onClose()
+  }
+
+  const field = (key: keyof typeof emptyForm) => ({
+    value: formData[key],
+    onChange: set(key),
+    error: fieldErrors[key],
+  })
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title='Create Dispatch Advice'
       footer={
         <>
-          <Button variant='secondary' onClick={onClose}>
+          <Button variant='secondary' onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Create</Button>
+          <Button onClick={handleSubmit} isLoading={isSubmitting}>
+            Create
+          </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className='space-y-4'>
+        {submitError && (
+          <div className='p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md'>
+            <p className='text-sm text-red-600 dark:text-red-400'>{submitError}</p>
+          </div>
+        )}
+
         <Input
           label='Order Reference'
           placeholder='ORD-001'
-          value={formData.orderRef}
-          onChange={e => setFormData({ ...formData, orderRef: e.target.value })}
+          {...field('orderRef')}
         />
-        <Input
-          label='Despatch Party Name *'
-          placeholder='Your company name'
-          value={formData.despatchPartyName}
-          onChange={e => setFormData({ ...formData, despatchPartyName: e.target.value })}
-          required
-        />
-        <Input
-          label='Delivery Party ID *'
-          placeholder='BUYER001'
-          value={formData.deliveryPartyId}
-          onChange={e => setFormData({ ...formData, deliveryPartyId: e.target.value })}
-          required
-        />
-        <Input
-          label='Delivery Party Name *'
-          placeholder='Buyer company name'
-          value={formData.deliveryPartyName}
-          onChange={e => setFormData({ ...formData, deliveryPartyName: e.target.value })}
-          required
-        />
-        <Input
-          label='Dispatch Date *'
-          type='date'
-          value={formData.dispatchDate}
-          onChange={e => setFormData({ ...formData, dispatchDate: e.target.value })}
-          required
-        />
+
+        <div>
+          <Input
+            label='Despatch Party Name *'
+            placeholder='Your company name'
+            {...field('despatchPartyName')}
+          />
+          {fieldErrors.despatchPartyName && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.despatchPartyName}</p>
+          )}
+        </div>
+
+        <div>
+          <Input
+            label='Delivery Party ID *'
+            placeholder='BUYER001'
+            {...field('deliveryPartyId')}
+          />
+          {fieldErrors.deliveryPartyId && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.deliveryPartyId}</p>
+          )}
+        </div>
+
+        <div>
+          <Input
+            label='Delivery Party Name *'
+            placeholder='Buyer company name'
+            {...field('deliveryPartyName')}
+          />
+          {fieldErrors.deliveryPartyName && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.deliveryPartyName}</p>
+          )}
+        </div>
+
+        <div>
+          <Input
+            label='Dispatch Date *'
+            type='date'
+            {...field('dispatchDate')}
+          />
+          {fieldErrors.dispatchDate && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.dispatchDate}</p>
+          )}
+        </div>
+
         <Input
           label='Expected Arrival Date'
           type='date'
-          value={formData.expectedArrival}
-          onChange={e => setFormData({ ...formData, expectedArrival: e.target.value })}
+          {...field('expectedArrival')}
         />
+
         <hr className='border-slate-200 dark:border-slate-700' />
         <p className='text-sm font-medium text-slate-700 dark:text-slate-300'>Item Details</p>
+
         <Input
           label='SKU'
           placeholder='ITEM-001'
-          value={formData.itemSku}
-          onChange={e => setFormData({ ...formData, itemSku: e.target.value })}
+          {...field('itemSku')}
         />
+
         <Input
           label='Description'
           placeholder='Item description'
-          value={formData.itemDescription}
-          onChange={e => setFormData({ ...formData, itemDescription: e.target.value })}
+          {...field('itemDescription')}
         />
-        <Input
-          label='Quantity'
-          type='number'
-          placeholder='1'
-          value={formData.itemQuantity}
-          onChange={e => setFormData({ ...formData, itemQuantity: e.target.value })}
-        />
-        <Input
-          label='Unit of Measure'
-          placeholder='EA'
-          value={formData.itemUom}
-          onChange={e => setFormData({ ...formData, itemUom: e.target.value })}
-        />
+
+        <div>
+          <Input
+            label='Quantity *'
+            type='number'
+            placeholder='1'
+            {...field('itemQuantity')}
+          />
+          {fieldErrors.itemQuantity && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.itemQuantity}</p>
+          )}
+        </div>
+
+        <div>
+          <Input
+            label='Unit of Measure *'
+            placeholder='EA'
+            {...field('itemUom')}
+          />
+          {fieldErrors.itemUom && (
+            <p className='text-xs text-red-500 mt-1'>{fieldErrors.itemUom}</p>
+          )}
+        </div>
       </form>
     </Modal>
   )

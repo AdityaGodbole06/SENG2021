@@ -68,6 +68,21 @@ export interface InvoiceLineItem {
   totalPrice: number
 }
 
+export interface ReceiptAdvice {
+  id: string
+  dispatchAdviceId: string
+  receiptDate: string
+  receivedItems: ReceiptLineItem[]
+  notes?: string
+  submittedAt?: string
+}
+
+export interface ReceiptLineItem {
+  sku: string
+  quantityReceived: number
+  uom: string
+}
+
 export interface ApiError {
   message: string
   code?: string

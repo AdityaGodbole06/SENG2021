@@ -4,7 +4,11 @@ import { AxiosError } from 'axios'
 
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof AxiosError) {
-    return error.response?.data?.error ?? error.message ?? fallback
+    const data = error.response?.data
+    if (data?.error?.message) return data.error.message
+    if (data?.details) return typeof data.details === 'string' ? data.details : JSON.stringify(data.details)
+    if (data?.error) return typeof data.error === 'string' ? data.error : fallback
+    return error.message ?? fallback
   }
   if (error instanceof Error) return error.message
   return fallback
@@ -20,30 +24,12 @@ export const invoicesService = {
     }
   },
 
-  async getInvoiceById(clients: ApiClients, id: string): Promise<Invoice | null> {
+  async createInvoice(clients: ApiClients, data: Omit<Invoice, 'id' | 'status'>): Promise<Invoice | null> {
     try {
-      const response = await clients.invoicesApi.get(`/invoices/${id}`)
-      return response as Invoice
-    } catch (error) {
-      throw new Error(extractErrorMessage(error, 'Failed to fetch invoice'))
-    }
-  },
-
-  async createInvoice(clients: ApiClients, data: Omit<Invoice, 'id' | 'status'>): Promise<Invoice> {
-    try {
-      const response = await clients.invoicesApi.post('/invoices', { ...data, status: 'unpaid' })
+      const response = await clients.invoicesApi.post('/invoices', data)
       return response as Invoice
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Failed to create invoice'))
-    }
-  },
-
-  async updateInvoice(clients: ApiClients, id: string, data: Partial<Invoice>): Promise<Invoice> {
-    try {
-      const response = await clients.invoicesApi.put(`/invoices/${id}`, data)
-      return response as Invoice
-    } catch (error) {
-      throw new Error(extractErrorMessage(error, 'Failed to update invoice'))
     }
   },
 
