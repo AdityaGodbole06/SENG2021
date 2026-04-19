@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingCart, Truck, FileText, Home, X, ClipboardCheck } from 'lucide-react'
+import { ShoppingCart, Truck, FileText, Home, X, ClipboardCheck, GitMerge, Ban } from 'lucide-react'
 import clsx from 'clsx'
 
 interface SidebarProps {
@@ -14,6 +14,8 @@ const navItems = [
   { icon: Truck, label: 'Dispatch', href: '/dispatch' },
   { icon: FileText, label: 'Invoices', href: '/invoices' },
   { icon: ClipboardCheck, label: 'Receipt Advice', href: '/receipt-advice' },
+  { icon: GitMerge, label: 'Order Adjustments', href: '/order-adjustments' },
+  { icon: Ban, label: 'Cancellations', href: '/fulfilment-cancellation' },
 ]
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {

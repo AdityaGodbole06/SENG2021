@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Download, History, Truck } from 'lucide-react'
+import { Plus, Edit2, Trash2, Download, Truck } from 'lucide-react'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { SlideOver } from '@/components/ui/SlideOver'
+import { OrderPipeline } from '@/components/ui/OrderPipeline'
 import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { orderService, Order } from '@/services/orderService'
@@ -21,8 +23,13 @@ const OrdersPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [slideOverOrder, setSlideOverOrder] = useState<Order | null>(null)
   const [dispatchOrder, setDispatchOrder] = useState<Order | null>(null)
+
+  // Field-level errors for create/edit forms
+  const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({})
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({})
+
   const [dispatchForm, setDispatchForm] = useState({
     deliveryPartyId: '',
     deliveryPartyName: '',
@@ -34,6 +41,7 @@ const OrdersPage: React.FC = () => {
     itemUom: 'EA',
   })
   const [dispatchLoading, setDispatchLoading] = useState(false)
+  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,11 +72,34 @@ const OrdersPage: React.FC = () => {
     }
   }
 
+  const validateCreateForm = (): Record<string, string> => {
+    const errs: Record<string, string> = {}
+    if (!formData.orderNumber.trim()) errs.orderNumber = 'Order number is required'
+    if (!formData.buyerParty.trim()) errs.buyerParty = 'Buyer party is required'
+    if (!formData.sellerParty.trim()) errs.sellerParty = 'Seller party is required'
+    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) < 0) {
+      errs.amount = 'A valid amount is required'
+    }
+    return errs
+  }
+
+  const validateEditForm = (): Record<string, string> => {
+    const errs: Record<string, string> = {}
+    if (!formData.buyerParty.trim()) errs.buyerParty = 'Buyer party is required'
+    if (!formData.sellerParty.trim()) errs.sellerParty = 'Seller party is required'
+    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) < 0) {
+      errs.amount = 'A valid amount is required'
+    }
+    return errs
+  }
+
   const handleCreateOrder = async () => {
-    if (!formData.orderNumber || !formData.buyerParty || !formData.sellerParty || !formData.amount) {
-      setError('Please fill in all required fields')
+    const errs = validateCreateForm()
+    if (Object.keys(errs).length > 0) {
+      setCreateFieldErrors(errs)
       return
     }
+    setCreateFieldErrors({})
 
     try {
       setError(null)
@@ -100,10 +131,12 @@ const OrdersPage: React.FC = () => {
   const handleUpdateOrder = async () => {
     if (!editingOrder) return
 
-    if (!formData.buyerParty || !formData.sellerParty || !formData.amount) {
-      setError('Please fill in all required fields')
+    const errs = validateEditForm()
+    if (Object.keys(errs).length > 0) {
+      setEditFieldErrors(errs)
       return
     }
+    setEditFieldErrors({})
 
     try {
       setError(null)
@@ -124,22 +157,25 @@ const OrdersPage: React.FC = () => {
     }
   }
 
-  const handleDeleteOrder = async (orderNumber: string) => {
+  const handleDeleteOrder = async (orderNumber: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!confirm('Are you sure you want to delete this order?')) return
 
     try {
       setError(null)
       const clients = createApiClients(tokens || {}, apiCredentials || {})
       await orderService.deleteOrder(clients, orderNumber)
+      if (slideOverOrder?.orderNumber === orderNumber) setSlideOverOrder(null)
       await fetchOrders()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete order')
     }
   }
 
-  const handleDownloadXML = (order: Order) => {
+  const handleDownloadXML = (order: Order, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     if (!order.xmlDocument) {
-      alert('No XML document available for this order')
+      setError('No XML document available for this order')
       return
     }
 
@@ -152,8 +188,10 @@ const OrdersPage: React.FC = () => {
     document.body.removeChild(element)
   }
 
-  const openEditModal = (order: Order) => {
+  const openEditModal = (order: Order, e: React.MouseEvent) => {
+    e.stopPropagation()
     setEditingOrder(order)
+    setEditFieldErrors({})
     setFormData({
       orderNumber: order.orderNumber,
       buyerParty: order.buyerParty,
@@ -188,7 +226,7 @@ const OrdersPage: React.FC = () => {
           uom: dispatchForm.itemUom || 'EA',
         }],
       } as any)
-      setDispatchOrder(null)
+      setDispatchSuccess('Dispatch created successfully!')
       setDispatchForm({
         deliveryPartyId: '',
         deliveryPartyName: '',
@@ -199,7 +237,10 @@ const OrdersPage: React.FC = () => {
         itemQuantity: '1',
         itemUom: 'EA',
       })
-      alert('Dispatch created successfully!')
+      setTimeout(() => {
+        setDispatchOrder(null)
+        setDispatchSuccess(null)
+      }, 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create dispatch')
     } finally {
@@ -229,6 +270,16 @@ const OrdersPage: React.FC = () => {
     return variants[status] || 'default'
   }
 
+  const statusTopipeline = (order: Order) => {
+    const s = order.status
+    return {
+      hasDispatch: s === 'dispatched' || s === 'delivered',
+      hasReceipt: s === 'delivered',
+      hasInvoice: false,
+      isPaid: false,
+    }
+  }
+
   return (
     <div className='min-h-screen bg-slate-50 dark:bg-slate-900 p-6'>
       <div className='max-w-7xl mx-auto'>
@@ -238,7 +289,7 @@ const OrdersPage: React.FC = () => {
             <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Orders</h1>
             <p className='text-slate-600 dark:text-slate-400'>Manage your orders and track fulfillment</p>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)} className='flex items-center gap-2'>
+          <Button onClick={() => { setIsCreateModalOpen(true); setCreateFieldErrors({}) }} className='flex items-center gap-2'>
             <Plus size={20} />
             Create Order
           </Button>
@@ -296,31 +347,20 @@ const OrdersPage: React.FC = () => {
                 <table className='w-full'>
                   <thead>
                     <tr className='border-b border-slate-200 dark:border-slate-700'>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Order Number
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Buyer
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Seller
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Amount
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Status
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>
-                        Actions
-                      </th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Order Number</th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Buyer</th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Seller</th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Amount</th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Status</th>
+                      <th className='text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-50'>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredOrders.map((order) => (
                       <tr
                         key={order.orderNumber}
-                        className='border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
+                        onClick={() => setSlideOverOrder(order)}
+                        className='border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer'
                       >
                         <td className='py-3 px-4 font-medium text-slate-900 dark:text-slate-50'>
                           {order.orderNumber}
@@ -338,9 +378,9 @@ const OrdersPage: React.FC = () => {
                           <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                         </td>
                         <td className='py-3 px-4'>
-                          <div className='flex gap-2'>
+                          <div className='flex gap-2' onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => openEditModal(order)}
+                              onClick={(e) => openEditModal(order, e)}
                               className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
                               title='Edit order'
                             >
@@ -348,7 +388,7 @@ const OrdersPage: React.FC = () => {
                             </button>
                             {isSupplier && (
                               <button
-                                onClick={() => setDispatchOrder(order)}
+                                onClick={(e) => { e.stopPropagation(); setDispatchOrder(order) }}
                                 className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
                                 title='Create Dispatch'
                               >
@@ -356,21 +396,14 @@ const OrdersPage: React.FC = () => {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDownloadXML(order)}
+                              onClick={(e) => handleDownloadXML(order, e)}
                               className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
                               title='Download XML'
                             >
                               <Download size={18} className='text-green-600' />
                             </button>
                             <button
-                              onClick={() => setSelectedOrder(order)}
-                              className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
-                              title='View audit trail'
-                            >
-                              <History size={18} className='text-purple-600' />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteOrder(order.orderNumber)}
+                              onClick={(e) => handleDeleteOrder(order.orderNumber, e)}
                               className='p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors'
                               title='Delete order'
                             >
@@ -388,190 +421,324 @@ const OrdersPage: React.FC = () => {
         </Card>
       </div>
 
+      {/* Order Detail SlideOver */}
+      <SlideOver
+        isOpen={!!slideOverOrder}
+        onClose={() => setSlideOverOrder(null)}
+        title={slideOverOrder ? `Order ${slideOverOrder.orderNumber}` : 'Order Details'}
+      >
+        {slideOverOrder && (
+          <div className='space-y-6'>
+            {/* Pipeline */}
+            <div>
+              <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-4'>
+                Fulfillment Pipeline
+              </h3>
+              <OrderPipeline
+                currentStatus={slideOverOrder.status}
+                {...statusTopipeline(slideOverOrder)}
+              />
+            </div>
+
+            <hr className='border-slate-200 dark:border-slate-700' />
+
+            {/* Order Details */}
+            <div>
+              <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                Order Details
+              </h3>
+              <dl className='space-y-3'>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Order Number</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverOrder.orderNumber}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Status</dt>
+                  <dd><Badge variant={getStatusVariant(slideOverOrder.status)}>{slideOverOrder.status}</Badge></dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Buyer Party</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverOrder.buyerParty}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Seller Party</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverOrder.sellerParty}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Amount</dt>
+                  <dd className='text-sm font-semibold text-slate-900 dark:text-slate-50'>${slideOverOrder.amount.toFixed(2)}</dd>
+                </div>
+                {slideOverOrder.orderDate && (
+                  <div className='flex justify-between'>
+                    <dt className='text-sm text-slate-500 dark:text-slate-400'>Order Date</dt>
+                    <dd className='text-sm text-slate-900 dark:text-slate-50'>
+                      {new Date(slideOverOrder.orderDate).toLocaleDateString()}
+                    </dd>
+                  </div>
+                )}
+                {slideOverOrder.deliveryDate && (
+                  <div className='flex justify-between'>
+                    <dt className='text-sm text-slate-500 dark:text-slate-400'>Delivery Date</dt>
+                    <dd className='text-sm text-slate-900 dark:text-slate-50'>
+                      {new Date(slideOverOrder.deliveryDate).toLocaleDateString()}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            <hr className='border-slate-200 dark:border-slate-700' />
+
+            {/* Related Records */}
+            <div>
+              <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                Related Records
+              </h3>
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                  <span className='text-sm text-slate-600 dark:text-slate-400'>Dispatches</span>
+                  <span className='text-sm text-slate-500 dark:text-slate-500'>
+                    {slideOverOrder.status === 'dispatched' || slideOverOrder.status === 'delivered'
+                      ? 'View in Dispatch tab'
+                      : 'None'}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                  <span className='text-sm text-slate-600 dark:text-slate-400'>Receipt Advice</span>
+                  <span className='text-sm text-slate-500 dark:text-slate-500'>
+                    {slideOverOrder.status === 'delivered' ? 'View in Receipt tab' : 'None'}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                  <span className='text-sm text-slate-600 dark:text-slate-400'>Invoices</span>
+                  <span className='text-sm text-slate-500 dark:text-slate-500'>None</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className='flex gap-3 pt-2'>
+              {isSupplier && (
+                <Button
+                  onClick={() => {
+                    setSlideOverOrder(null)
+                    setDispatchOrder(slideOverOrder)
+                  }}
+                  className='flex items-center gap-2'
+                >
+                  <Truck size={16} />
+                  Create Dispatch
+                </Button>
+              )}
+              <Button
+                variant='ghost'
+                onClick={() => handleDownloadXML(slideOverOrder)}
+                className='flex items-center gap-2'
+              >
+                <Download size={16} />
+                Download XML
+              </Button>
+            </div>
+          </div>
+        )}
+      </SlideOver>
+
       {/* Create Order Modal */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => { setIsCreateModalOpen(false); setCreateFieldErrors({}) }}
         title='Create New Order'
       >
         <div className='min-w-96'>
-            {error && (
-              <div className='mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
-                {error}
-              </div>
-            )}
-            <div className='space-y-4'>
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Order Number *
-                </label>
-                <Input
-                  value={formData.orderNumber}
-                  onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
-                  placeholder='ORD-001'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Buyer Party *
-                </label>
-                <Input
-                  value={formData.buyerParty}
-                  onChange={(e) => setFormData({ ...formData, buyerParty: e.target.value })}
-                  placeholder='Buyer company name'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Seller Party *
-                </label>
-                <Input
-                  value={formData.sellerParty}
-                  onChange={(e) => setFormData({ ...formData, sellerParty: e.target.value })}
-                  placeholder='Seller company name'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Amount *
-                </label>
-                <Input
-                  type='number'
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  placeholder='0.00'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Order Date
-                </label>
-                <Input
-                  type='date'
-                  value={formData.orderDate}
-                  onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Delivery Date
-                </label>
-                <Input
-                  type='date'
-                  value={formData.deliveryDate}
-                  onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-                />
-              </div>
-
-              <div className='flex gap-3 mt-6'>
-                <Button
-                  variant='ghost'
-                  onClick={() => setIsCreateModalOpen(false)}
-                  fullWidth
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateOrder}
-                  fullWidth
-                >
-                  Create Order
-                </Button>
-              </div>
+          <div className='space-y-4'>
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Order Number *
+              </label>
+              <Input
+                value={formData.orderNumber}
+                onChange={(e) => {
+                  setFormData({ ...formData, orderNumber: e.target.value })
+                  setCreateFieldErrors(prev => ({ ...prev, orderNumber: '' }))
+                }}
+                placeholder='ORD-001'
+                error={createFieldErrors.orderNumber}
+              />
             </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Buyer Party *
+              </label>
+              <Input
+                value={formData.buyerParty}
+                onChange={(e) => {
+                  setFormData({ ...formData, buyerParty: e.target.value })
+                  setCreateFieldErrors(prev => ({ ...prev, buyerParty: '' }))
+                }}
+                placeholder='Buyer company name'
+                error={createFieldErrors.buyerParty}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Seller Party *
+              </label>
+              <Input
+                value={formData.sellerParty}
+                onChange={(e) => {
+                  setFormData({ ...formData, sellerParty: e.target.value })
+                  setCreateFieldErrors(prev => ({ ...prev, sellerParty: '' }))
+                }}
+                placeholder='Seller company name'
+                error={createFieldErrors.sellerParty}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Amount *
+              </label>
+              <Input
+                type='number'
+                value={formData.amount}
+                onChange={(e) => {
+                  setFormData({ ...formData, amount: e.target.value })
+                  setCreateFieldErrors(prev => ({ ...prev, amount: '' }))
+                }}
+                placeholder='0.00'
+                error={createFieldErrors.amount}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Order Date
+              </label>
+              <Input
+                type='date'
+                value={formData.orderDate}
+                onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Delivery Date
+              </label>
+              <Input
+                type='date'
+                value={formData.deliveryDate}
+                onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+              />
+            </div>
+
+            {error && (
+              <p className='text-sm text-red-500'>{error}</p>
+            )}
+
+            <div className='flex gap-3 mt-6'>
+              <Button variant='ghost' onClick={() => { setIsCreateModalOpen(false); setCreateFieldErrors({}) }} fullWidth>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateOrder} fullWidth>
+                Create Order
+              </Button>
+            </div>
+          </div>
         </div>
       </Modal>
 
       {/* Edit Order Modal */}
       <Modal
         isOpen={isEditModalOpen && !!editingOrder}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => { setIsEditModalOpen(false); setEditFieldErrors({}) }}
         title={`Edit Order: ${editingOrder?.orderNumber || ''}`}
       >
         <div className='min-w-96'>
-            {error && (
-              <div className='mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
-                {error}
-              </div>
-            )}
-            <div className='space-y-4'>
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Buyer Party *
-                </label>
-                <Input
-                  value={formData.buyerParty}
-                  onChange={(e) => setFormData({ ...formData, buyerParty: e.target.value })}
-                  placeholder='Buyer company name'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Seller Party *
-                </label>
-                <Input
-                  value={formData.sellerParty}
-                  onChange={(e) => setFormData({ ...formData, sellerParty: e.target.value })}
-                  placeholder='Seller company name'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Amount *
-                </label>
-                <Input
-                  type='number'
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  placeholder='0.00'
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Order Date
-                </label>
-                <Input
-                  type='date'
-                  value={formData.orderDate}
-                  onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
-                  Delivery Date
-                </label>
-                <Input
-                  type='date'
-                  value={formData.deliveryDate}
-                  onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-                />
-              </div>
-
-              <div className='flex gap-3 mt-6'>
-                <Button
-                  variant='ghost'
-                  onClick={() => setIsEditModalOpen(false)}
-                  fullWidth
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateOrder}
-                  fullWidth
-                >
-                  Update Order
-                </Button>
-              </div>
+          <div className='space-y-4'>
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Buyer Party *
+              </label>
+              <Input
+                value={formData.buyerParty}
+                onChange={(e) => {
+                  setFormData({ ...formData, buyerParty: e.target.value })
+                  setEditFieldErrors(prev => ({ ...prev, buyerParty: '' }))
+                }}
+                placeholder='Buyer company name'
+                error={editFieldErrors.buyerParty}
+              />
             </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Seller Party *
+              </label>
+              <Input
+                value={formData.sellerParty}
+                onChange={(e) => {
+                  setFormData({ ...formData, sellerParty: e.target.value })
+                  setEditFieldErrors(prev => ({ ...prev, sellerParty: '' }))
+                }}
+                placeholder='Seller company name'
+                error={editFieldErrors.sellerParty}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Amount *
+              </label>
+              <Input
+                type='number'
+                value={formData.amount}
+                onChange={(e) => {
+                  setFormData({ ...formData, amount: e.target.value })
+                  setEditFieldErrors(prev => ({ ...prev, amount: '' }))
+                }}
+                placeholder='0.00'
+                error={editFieldErrors.amount}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Order Date
+              </label>
+              <Input
+                type='date'
+                value={formData.orderDate}
+                onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
+                Delivery Date
+              </label>
+              <Input
+                type='date'
+                value={formData.deliveryDate}
+                onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+              />
+            </div>
+
+            {error && (
+              <p className='text-sm text-red-500'>{error}</p>
+            )}
+
+            <div className='flex gap-3 mt-6'>
+              <Button variant='ghost' onClick={() => { setIsEditModalOpen(false); setEditFieldErrors({}) }} fullWidth>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateOrder} fullWidth>
+                Update Order
+              </Button>
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -582,6 +749,11 @@ const OrdersPage: React.FC = () => {
         title={`Create Dispatch for ${dispatchOrder?.orderNumber || ''}`}
       >
         <div className='min-w-96 space-y-4'>
+          {dispatchSuccess && (
+            <div className='p-3 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-800 rounded text-green-700 dark:text-green-400 text-sm'>
+              {dispatchSuccess}
+            </div>
+          )}
           {error && (
             <div className='p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm'>
               {error}

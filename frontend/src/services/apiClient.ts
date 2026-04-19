@@ -169,6 +169,11 @@ export const createApiClients = (
     token: tokens.dispatchApi,
     authType: 'bearer',
   }),
+  cancellationApi: new ApiClient({
+    baseURL: 'http://localhost:3000/api/fulfilment-cancellations',
+    token: tokens.ordersApi,
+    authType: 'bearer',
+  }),
   auditApi: new ApiClient({
     baseURL: 'http://localhost:3000/api',
     token: tokens.ordersApi,

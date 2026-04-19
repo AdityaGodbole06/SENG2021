@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { SlideOver } from '@/components/ui/SlideOver'
 import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { dispatchService } from '@/services/dispatchService'
@@ -19,6 +20,7 @@ const DispatchPage: React.FC = () => {
   const [dispatches, setDispatches] = useState<DespatchAdvice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [slideOverDispatch, setSlideOverDispatch] = useState<DespatchAdvice | null>(null)
 
   useEffect(() => {
     const fetchDispatches = async () => {
@@ -58,19 +60,22 @@ const DispatchPage: React.FC = () => {
     return variants[status]
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     if (confirm('Are you sure you want to delete this dispatch?')) {
       try {
         const clients = createApiClients(tokens || {}, apiCredentials || {})
         await dispatchService.deleteDispatch(clients, id)
         setDispatches(dispatches.filter(d => d.id !== id))
+        if (slideOverDispatch?.id === id) setSlideOverDispatch(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete dispatch')
       }
     }
   }
 
-  const handleDownload = (dispatch: DespatchAdvice) => {
+  const handleDownload = (dispatch: DespatchAdvice, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <DespatchAdvice>
   <DespatchNumber>${dispatch.despatchNumber}</DespatchNumber>
@@ -179,24 +184,12 @@ const DispatchPage: React.FC = () => {
           <table className='w-full'>
             <thead>
               <tr className='border-b border-slate-200 dark:border-slate-800'>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Dispatch #
-                </th>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Order Ref
-                </th>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Dispatch Date
-                </th>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Expected Arrival
-                </th>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Status
-                </th>
-                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                  Actions
-                </th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Dispatch #</th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Order Ref</th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Dispatch Date</th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Expected Arrival</th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Status</th>
+                <th className='px-6 py-4 text-left text-sm font-semibold text-slate-900 dark:text-slate-50'>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -210,7 +203,8 @@ const DispatchPage: React.FC = () => {
               {filteredDispatches.map(dispatch => (
                 <tr
                   key={dispatch.id}
-                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
+                  onClick={() => setSlideOverDispatch(dispatch)}
+                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer'
                 >
                   <td className='px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-50'>
                     {dispatch.despatchNumber}
@@ -229,23 +223,25 @@ const DispatchPage: React.FC = () => {
                       {dispatch.status.replace('_', ' ')}
                     </Badge>
                   </td>
-                  <td className='px-6 py-4 text-sm flex gap-2'>
-                    <button
-                      onClick={() => handleDownload(dispatch)}
-                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
-                      title='Download as XML'
-                    >
-                      <Download size={16} />
-                    </button>
-                    {isSupplier && (
+                  <td className='px-6 py-4 text-sm'>
+                    <div className='flex gap-2' onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => handleDelete(dispatch.id)}
-                        className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
-                        title='Delete dispatch'
+                        onClick={(e) => handleDownload(dispatch, e)}
+                        className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                        title='Download as XML'
                       >
-                        <Trash2 size={16} />
+                        <Download size={16} />
                       </button>
-                    )}
+                      {isSupplier && (
+                        <button
+                          onClick={(e) => handleDelete(dispatch.id, e)}
+                          className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                          title='Delete dispatch'
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -253,6 +249,119 @@ const DispatchPage: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* Dispatch Detail SlideOver */}
+      <SlideOver
+        isOpen={!!slideOverDispatch}
+        onClose={() => setSlideOverDispatch(null)}
+        title={slideOverDispatch ? `Dispatch ${slideOverDispatch.despatchNumber}` : 'Dispatch Details'}
+      >
+        {slideOverDispatch && (
+          <div className='space-y-6'>
+            <div>
+              <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                Dispatch Details
+              </h3>
+              <dl className='space-y-3'>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Dispatch Number</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverDispatch.despatchNumber}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Status</dt>
+                  <dd><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{slideOverDispatch.status.replace('_', ' ')}</Badge></dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Order Reference</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverDispatch.orderRef}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Delivery Party</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverDispatch.deliveryParty || '—'}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Dispatch Date</dt>
+                  <dd className='text-sm text-slate-900 dark:text-slate-50'>{slideOverDispatch.dispatchDate || '—'}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Expected Arrival</dt>
+                  <dd className='text-sm text-slate-900 dark:text-slate-50'>{slideOverDispatch.expectedArrival || '—'}</dd>
+                </div>
+              </dl>
+            </div>
+
+            {slideOverDispatch.items && slideOverDispatch.items.length > 0 && (
+              <>
+                <hr className='border-slate-200 dark:border-slate-700' />
+                <div>
+                  <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                    Items
+                  </h3>
+                  <div className='space-y-2'>
+                    {slideOverDispatch.items.map((item, idx) => (
+                      <div key={idx} className='p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                        <div className='flex justify-between text-sm'>
+                          <span className='text-slate-500 dark:text-slate-400'>Line ref</span>
+                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.orderLineRef}</span>
+                        </div>
+                        <div className='flex justify-between text-sm mt-1'>
+                          <span className='text-slate-500 dark:text-slate-400'>Delivered qty</span>
+                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.deliveredQuantity}</span>
+                        </div>
+                        {item.backorderQuantity !== undefined && (
+                          <div className='flex justify-between text-sm mt-1'>
+                            <span className='text-slate-500 dark:text-slate-400'>Backorder qty</span>
+                            <span className='font-medium text-slate-900 dark:text-slate-50'>{item.backorderQuantity}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {slideOverDispatch.discrepancies && slideOverDispatch.discrepancies.length > 0 && (
+              <>
+                <hr className='border-slate-200 dark:border-slate-700' />
+                <div>
+                  <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                    Discrepancies
+                  </h3>
+                  <ul className='space-y-1'>
+                    {slideOverDispatch.discrepancies.map((d, idx) => (
+                      <li key={idx} className='text-sm text-red-600 dark:text-red-400'>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
+
+            <div className='flex gap-3 pt-2'>
+              <Button
+                variant='ghost'
+                onClick={() => handleDownload(slideOverDispatch)}
+                className='flex items-center gap-2'
+              >
+                <Download size={16} />
+                Download XML
+              </Button>
+              {isSupplier && (
+                <Button
+                  variant='ghost'
+                  onClick={() => {
+                    handleDelete(slideOverDispatch.id, { stopPropagation: () => {} } as any)
+                  }}
+                  className='flex items-center gap-2 text-red-600 hover:text-red-700'
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </SlideOver>
 
       <CreateDispatchModal
         isOpen={isCreateModalOpen}
@@ -367,49 +476,29 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
           {...field('orderRef')}
         />
 
-        <div>
-          <Input
-            label='Despatch Party Name *'
-            placeholder='Your company name'
-            {...field('despatchPartyName')}
-          />
-          {fieldErrors.despatchPartyName && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.despatchPartyName}</p>
-          )}
-        </div>
+        <Input
+          label='Despatch Party Name *'
+          placeholder='Your company name'
+          {...field('despatchPartyName')}
+        />
 
-        <div>
-          <Input
-            label='Delivery Party ID *'
-            placeholder='BUYER001'
-            {...field('deliveryPartyId')}
-          />
-          {fieldErrors.deliveryPartyId && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.deliveryPartyId}</p>
-          )}
-        </div>
+        <Input
+          label='Delivery Party ID *'
+          placeholder='BUYER001'
+          {...field('deliveryPartyId')}
+        />
 
-        <div>
-          <Input
-            label='Delivery Party Name *'
-            placeholder='Buyer company name'
-            {...field('deliveryPartyName')}
-          />
-          {fieldErrors.deliveryPartyName && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.deliveryPartyName}</p>
-          )}
-        </div>
+        <Input
+          label='Delivery Party Name *'
+          placeholder='Buyer company name'
+          {...field('deliveryPartyName')}
+        />
 
-        <div>
-          <Input
-            label='Dispatch Date *'
-            type='date'
-            {...field('dispatchDate')}
-          />
-          {fieldErrors.dispatchDate && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.dispatchDate}</p>
-          )}
-        </div>
+        <Input
+          label='Dispatch Date *'
+          type='date'
+          {...field('dispatchDate')}
+        />
 
         <Input
           label='Expected Arrival Date'
@@ -432,28 +521,18 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
           {...field('itemDescription')}
         />
 
-        <div>
-          <Input
-            label='Quantity *'
-            type='number'
-            placeholder='1'
-            {...field('itemQuantity')}
-          />
-          {fieldErrors.itemQuantity && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.itemQuantity}</p>
-          )}
-        </div>
+        <Input
+          label='Quantity *'
+          type='number'
+          placeholder='1'
+          {...field('itemQuantity')}
+        />
 
-        <div>
-          <Input
-            label='Unit of Measure *'
-            placeholder='EA'
-            {...field('itemUom')}
-          />
-          {fieldErrors.itemUom && (
-            <p className='text-xs text-red-500 mt-1'>{fieldErrors.itemUom}</p>
-          )}
-        </div>
+        <Input
+          label='Unit of Measure *'
+          placeholder='EA'
+          {...field('itemUom')}
+        />
       </form>
     </Modal>
   )

@@ -20,6 +20,17 @@ router.post('/', async (req, res) => {
     }
 });
 
+// GET /order-adjustments
+// List all adjustments
+router.get('/', async (req, res) => {
+  try {
+    const adjustments = await OrderAdjustment.find().sort({ createdAt: -1 });
+    res.json(adjustments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /order-adjustment/:id
 // Both parties can read adjustments
 router.get('/:id', async (req,res) => {
