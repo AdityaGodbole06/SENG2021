@@ -1,4 +1,5 @@
 import { ApiClients } from './apiClient'
+import { ReceiptAdvice } from '@/types'
 import { AxiosError } from 'axios'
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -21,6 +22,15 @@ export interface CreateReceiptPayload {
 }
 
 export const receiptAdviceService = {
+  async getReceipts(clients: ApiClients): Promise<ReceiptAdvice[]> {
+    try {
+      const response = await clients.receiptApi.get('/')
+      return Array.isArray(response) ? response : (response as any)?.data || []
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Failed to fetch receipt advices'))
+    }
+  },
+
   async createReceiptAdvice(clients: ApiClients, data: CreateReceiptPayload): Promise<string> {
     try {
       const response = await clients.receiptApi.post('/', data)

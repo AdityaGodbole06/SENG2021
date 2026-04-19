@@ -141,6 +141,24 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /receipt-advices
+router.get('/', async (req, res) => {
+  try {
+    const receipts = await ReceiptAdvice.find().sort({ createdAt: -1 });
+    const mapped = receipts.map(r => ({
+      id: r.receiptAdviceId,
+      dispatchAdviceId: r.dispatchAdviceId,
+      receiptDate: r.receiptDate,
+      receivedItems: r.receivedItems,
+      notes: r.notes,
+      submittedAt: r.createdAt?.toISOString(),
+    }));
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
 // GET /receipt-advices/:receiptAdviceId
 // Retrieves the UBL XML Receipt Advice
 router.get('/:receiptAdviceId', async (req, res) => {

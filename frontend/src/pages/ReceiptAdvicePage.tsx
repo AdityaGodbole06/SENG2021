@@ -22,20 +22,24 @@ const ReceiptAdvicePage: React.FC = () => {
   const [selectedDispatch, setSelectedDispatch] = useState<DespatchAdvice | null>(null)
 
   useEffect(() => {
-    const fetchDispatches = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
         const clients = createApiClients(tokens || {}, apiCredentials || {})
-        const data = await dispatchService.getDispatches(clients)
-        setDispatches(data)
+        const [dispatchData, receiptData] = await Promise.all([
+          dispatchService.getDispatches(clients),
+          receiptAdviceService.getReceipts(clients),
+        ])
+        setDispatches(dispatchData)
+        setReceipts(receiptData)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dispatches')
+        setError(err instanceof Error ? err.message : 'Failed to load data')
       } finally {
         setLoading(false)
       }
     }
-    fetchDispatches()
+    fetchData()
   }, [tokens, apiCredentials])
 
   const filteredDispatches = dispatches.filter(d =>
@@ -213,7 +217,7 @@ ${receipt.receivedItems.map(i => `    <Item>
         <Card>
           <div className='px-6 py-4 border-b border-slate-200 dark:border-slate-800'>
             <h2 className='text-lg font-semibold text-slate-900 dark:text-slate-50'>
-              Submitted This Session
+              Submitted Receipts
             </h2>
           </div>
           <div className='overflow-x-auto'>
