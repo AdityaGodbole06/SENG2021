@@ -11,6 +11,9 @@ import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { orderService, Order } from '@/services/orderService'
 import { dispatchService } from '@/services/dispatchService'
+import { receiptAdviceService } from '@/services/receiptAdviceService'
+import { invoicesService } from '@/services/invoicesService'
+import { DespatchAdvice, ReceiptAdvice, Invoice } from '@/types'
 
 const OrdersPage: React.FC = () => {
   const { tokens, apiCredentials, role } = useAuth()
@@ -25,6 +28,10 @@ const OrdersPage: React.FC = () => {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [slideOverOrder, setSlideOverOrder] = useState<Order | null>(null)
   const [dispatchOrder, setDispatchOrder] = useState<Order | null>(null)
+  const [relatedDispatches, setRelatedDispatches] = useState<DespatchAdvice[]>([])
+  const [relatedReceipts, setRelatedReceipts] = useState<ReceiptAdvice[]>([])
+  const [relatedInvoices, setRelatedInvoices] = useState<Invoice[]>([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
 
   // Field-level errors for create/edit forms
   const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({})
@@ -56,6 +63,44 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     fetchOrders()
   }, [tokens, apiCredentials])
+
+  useEffect(() => {
+    if (!slideOverOrder) {
+      setRelatedDispatches([])
+      setRelatedReceipts([])
+      setRelatedInvoices([])
+      return
+    }
+    const fetchRelated = async () => {
+      setRelatedLoading(true)
+      try {
+        const clients = createApiClients(tokens || {}, apiCredentials || {})
+        const [allDispatches, allReceipts, allInvoices] = await Promise.allSettled([
+          dispatchService.getDispatches(clients),
+          receiptAdviceService.getReceipts(clients),
+          invoicesService.getInvoices(clients),
+        ])
+        const dispatches = allDispatches.status === 'fulfilled'
+          ? allDispatches.value.filter(d => d.orderRef === slideOverOrder.orderNumber)
+          : []
+        const dispatchIds = new Set(dispatches.map(d => d.id))
+        const receipts = allReceipts.status === 'fulfilled'
+          ? allReceipts.value.filter(r => dispatchIds.has(r.dispatchAdviceId))
+          : []
+        const invoices = allInvoices.status === 'fulfilled'
+          ? allInvoices.value.filter(i => i.orderId === slideOverOrder.orderNumber)
+          : []
+        setRelatedDispatches(dispatches)
+        setRelatedReceipts(receipts)
+        setRelatedInvoices(invoices)
+      } catch {
+        // non-fatal — related records are best-effort
+      } finally {
+        setRelatedLoading(false)
+      }
+    }
+    fetchRelated()
+  }, [slideOverOrder?.orderNumber])
 
   const fetchOrders = async () => {
     try {
@@ -270,15 +315,12 @@ const OrdersPage: React.FC = () => {
     return variants[status] || 'default'
   }
 
-  const statusTopipeline = (order: Order) => {
-    const s = order.status
-    return {
-      hasDispatch: s === 'dispatched' || s === 'delivered',
-      hasReceipt: s === 'delivered',
-      hasInvoice: false,
-      isPaid: false,
-    }
-  }
+  const statusTopipeline = (_order: Order) => ({
+    hasDispatch: relatedDispatches.length > 0,
+    hasReceipt: relatedReceipts.length > 0,
+    hasInvoice: relatedInvoices.length > 0,
+    isPaid: relatedInvoices.some(i => i.status === 'paid'),
+  })
 
   return (
     <div className='min-h-screen bg-slate-50 dark:bg-slate-900 p-6'>
@@ -494,26 +536,30 @@ const OrdersPage: React.FC = () => {
               <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
                 Related Records
               </h3>
-              <div className='space-y-2'>
-                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
-                  <span className='text-sm text-slate-600 dark:text-slate-400'>Dispatches</span>
-                  <span className='text-sm text-slate-500 dark:text-slate-500'>
-                    {slideOverOrder.status === 'dispatched' || slideOverOrder.status === 'delivered'
-                      ? 'View in Dispatch tab'
-                      : 'None'}
-                  </span>
+              {relatedLoading ? (
+                <p className='text-xs text-slate-400 dark:text-slate-500'>Loading…</p>
+              ) : (
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                    <span className='text-sm text-slate-600 dark:text-slate-400'>Dispatches</span>
+                    <span className='text-sm font-medium text-slate-900 dark:text-slate-50'>
+                      {relatedDispatches.length > 0 ? `${relatedDispatches.length} dispatch${relatedDispatches.length > 1 ? 'es' : ''}` : 'None'}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                    <span className='text-sm text-slate-600 dark:text-slate-400'>Receipt Advice</span>
+                    <span className='text-sm font-medium text-slate-900 dark:text-slate-50'>
+                      {relatedReceipts.length > 0 ? `${relatedReceipts.length} receipt${relatedReceipts.length > 1 ? 's' : ''}` : 'None'}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
+                    <span className='text-sm text-slate-600 dark:text-slate-400'>Invoices</span>
+                    <span className='text-sm font-medium text-slate-900 dark:text-slate-50'>
+                      {relatedInvoices.length > 0 ? `${relatedInvoices.length} invoice${relatedInvoices.length > 1 ? 's' : ''}` : 'None'}
+                    </span>
+                  </div>
                 </div>
-                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
-                  <span className='text-sm text-slate-600 dark:text-slate-400'>Receipt Advice</span>
-                  <span className='text-sm text-slate-500 dark:text-slate-500'>
-                    {slideOverOrder.status === 'delivered' ? 'View in Receipt tab' : 'None'}
-                  </span>
-                </div>
-                <div className='flex items-center justify-between p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
-                  <span className='text-sm text-slate-600 dark:text-slate-400'>Invoices</span>
-                  <span className='text-sm text-slate-500 dark:text-slate-500'>None</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Actions */}
