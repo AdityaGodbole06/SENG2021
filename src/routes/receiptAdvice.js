@@ -5,6 +5,9 @@ const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const OrderAdjustment = require('../models/OrderAdjustment');
 const { generateReceiptAdviceXML } = require('../utils/ublGenerator');
+const AuditService = require('../services/auditService');
+
+const auditService = new AuditService();
 
 // POST /receipt-advices
 // Returns UBL 2.1 XML
@@ -88,6 +91,16 @@ router.post('/', async (req, res) => {
 
   await receiptAdvice.save();
 
+  // Log to audit trail
+  await auditService.log(
+    'SUBMIT_RECEIPT',
+    'RECEIPT',
+    receiptAdviceId,
+    req.party?.partyId || 'SYSTEM',
+    { dispatchAdviceId, itemCount: receivedItems.length },
+    `Receipt Advice submitted: ${receiptAdviceId}`
+  );
+
   // Compare received quantities against dispatched quantities per SKU
   const dispatchedMap = {};
   for (const item of despatchAdvice.items) {
@@ -125,6 +138,24 @@ router.post('/', async (req, res) => {
     return res.status(500).json({
       error: { code: 'INTERNAL_ERROR', message: err.message },
     });
+  }
+});
+
+// GET /receipt-advices
+router.get('/', async (req, res) => {
+  try {
+    const receipts = await ReceiptAdvice.find().sort({ createdAt: -1 });
+    const mapped = receipts.map(r => ({
+      id: r.receiptAdviceId,
+      dispatchAdviceId: r.dispatchAdviceId,
+      receiptDate: r.receiptDate,
+      receivedItems: r.receivedItems,
+      notes: r.notes,
+      submittedAt: r.createdAt?.toISOString(),
+    }));
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 

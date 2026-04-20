@@ -4,22 +4,50 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const { authMiddleware } = require('./middleware/auth');
 
+const authRoutes = require('./routes/auth');
+const externalApiProxyRoutes = require('./routes/externalApiProxy');
 const receiptAdviceRoutes = require('./routes/receiptAdvice');
 const despatchAdviceRoutes = require('./routes/despatchAdvice');
 const orderAdjustmentRoutes = require('./routes/orderAdjustmentRoute');
 const fulfilmentCancellationRoutes = require('./routes/fulfilmentCancellation');
+const orderRoutes = require('./routes/orders');
+const invoiceRoutes = require('./routes/invoices');
+const auditTrailRoutes = require('./routes/auditTrail');
 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 
 const app = express();
+
+// Enable CORS for frontend development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Chalksniffer-Key, X-Gptless-Token');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 connectDB();
+
+// Auth routes (no middleware required)
+app.use('/api/auth', authRoutes);
+
+// External API Proxy routes (no middleware required)
+app.use('/api/proxy', externalApiProxyRoutes);
+
+// Order routes (auth required for most, guest/create endpoint is skipped in auth middleware)
+app.use('/api/orders', authMiddleware, orderRoutes);
 
 app.use('/api/despatch-advices', authMiddleware, despatchAdviceRoutes);
 app.use('/api/receipt-advices', authMiddleware, receiptAdviceRoutes);
 app.use('/api/order-adjustments', authMiddleware, orderAdjustmentRoutes);
 app.use('/api/fulfilment-cancellations', authMiddleware, fulfilmentCancellationRoutes);
+app.use('/api/invoices', authMiddleware, invoiceRoutes);
+app.use('/api/audit-trail', authMiddleware, auditTrailRoutes);
 
 app.get('/health', async (req, res) => {
     const dbState = mongoose.connection.readyState;

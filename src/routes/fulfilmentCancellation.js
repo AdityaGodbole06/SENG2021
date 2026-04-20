@@ -85,7 +85,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /fulfilment-cancellations
+// GET /fulfilment-cancellations (list all)
+router.get('/', async (req, res) => {
+  try {
+    const cancellations = await FulfilmentCancellation.find().sort({ createdAt: -1 });
+    res.json(cancellations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /fulfilment-cancellations/:id
 router.get('/:id', async (req, res) => {
   try {
     const cancellation = await FulfilmentCancellation.findOne({ 
