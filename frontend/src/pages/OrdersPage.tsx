@@ -237,6 +237,7 @@ const OrdersPage: React.FC = () => {
         itemQuantity: '1',
         itemUom: 'EA',
       })
+      await fetchOrders()
       setTimeout(() => {
         setDispatchOrder(null)
         setDispatchSuccess(null)
