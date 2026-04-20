@@ -282,6 +282,7 @@ const OrdersPage: React.FC = () => {
         itemQuantity: '1',
         itemUom: 'EA',
       })
+      await fetchOrders()
       setTimeout(() => {
         setDispatchOrder(null)
         setDispatchSuccess(null)
@@ -310,6 +311,8 @@ const OrdersPage: React.FC = () => {
       confirmed: 'info',
       dispatched: 'default',
       delivered: 'success',
+      invoiced: 'info',
+      paid: 'success',
       cancelled: 'danger',
     }
     return variants[status] || 'default'

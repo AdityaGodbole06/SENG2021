@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 const DespatchAdvice = require('../models/DespatchAdvice');
+const Order = require('../models/Order');
 const { generateDespatchAdviceXML } = require('../utils/ublGenerator');
 const AuditService = require('../services/auditService');
 
@@ -97,6 +98,14 @@ router.post('/', async (req, res) => {
   });
 
   await despatchAdvice.save();
+
+  // Update linked order status to dispatched
+  if (externalRef) {
+    await Order.findOneAndUpdate(
+      { orderNumber: externalRef, status: { $nin: ['dispatched', 'delivered', 'cancelled'] } },
+      { status: 'dispatched' }
+    );
+  }
 
   // Log to audit trail
   await auditService.log(
