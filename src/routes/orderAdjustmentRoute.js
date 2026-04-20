@@ -5,6 +5,19 @@ const orderAdjustmentService = require('../services/orderAdjustmentService');
 
 const service = new orderAdjustmentService();
 
+// GET /order-adjustments - list all adjustments visible to this party
+router.get('/', async (req, res) => {
+  try {
+    const filter = req.party
+      ? { requestedByPartyId: req.party.partyId }
+      : {}
+    const adjustments = await OrderAdjustment.find(filter).sort({ createdAt: -1 })
+    return res.status(200).json({ total: adjustments.length, adjustments })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+})
+
 // POST /order-adjustment
 // Only DELIVERY_PARTY can create adjustments
 router.post('/', async (req, res) => {
