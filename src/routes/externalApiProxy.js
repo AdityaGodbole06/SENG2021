@@ -250,6 +250,24 @@ router.post('/invoices', async (req, res) => {
   }
 });
 
+router.patch('/invoices/:id', async (req, res) => {
+  try {
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    res.json({
+      id: invoice._id.toString(),
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update invoice', details: error.message });
+  }
+});
+
 router.get('/invoices', async (req, res) => {
   try {
     const { gptlessToken } = getCredentialsFromRequest(req);
@@ -258,8 +276,12 @@ router.get('/invoices', async (req, res) => {
       return res.status(401).json({ error: 'Missing GPTless credentials' });
     }
 
-    // Return invoices stored locally from GPTless-generated invoices
-    const invoices = await Invoice.find().sort({ createdAt: -1 });
+    // Filter invoices by the authenticated party
+    const filter = req.party
+      ? { $or: [{ buyerParty: req.party.partyId }, { sellerParty: req.party.partyId },
+                { buyerParty: req.party.name }, { sellerParty: req.party.name }] }
+      : {};
+    const invoices = await Invoice.find(filter).sort({ createdAt: -1 });
     const mapped = invoices.map(inv => ({
       id: inv._id.toString(),
       invoiceNumber: inv.invoiceNumber,
