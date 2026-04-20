@@ -5,6 +5,7 @@ const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
 const AuditService = require('../services/auditService');
 const Invoice = require('../models/Invoice');
+const Order = require('../models/Order');
 
 const auditService = new AuditService();
 
@@ -229,6 +230,14 @@ router.post('/invoices', async (req, res) => {
       console.error('Failed to save invoice metadata:', saveErr.message);
     }
 
+    // Update linked order status to invoiced
+    if (orderId) {
+      await Order.findOneAndUpdate(
+        { orderNumber: orderId, status: { $nin: ['invoiced', 'paid', 'cancelled'] } },
+        { status: 'invoiced' }
+      );
+    }
+
     res.status(201).json({
       id: savedInvoice?._id?.toString() || gptlessId,
       invoiceNumber: finalInvoiceNumber,
@@ -258,6 +267,15 @@ router.patch('/invoices/:id', async (req, res) => {
       { new: true }
     );
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+    // Update linked order status to paid
+    if (req.body.status === 'paid' && invoice.orderId) {
+      await Order.findOneAndUpdate(
+        { orderNumber: invoice.orderId, status: { $ne: 'cancelled' } },
+        { status: 'paid' }
+      );
+    }
+
     res.json({
       id: invoice._id.toString(),
       invoiceNumber: invoice.invoiceNumber,

@@ -266,6 +266,8 @@ const OrdersPage: React.FC = () => {
       confirmed: 'info',
       dispatched: 'default',
       delivered: 'success',
+      invoiced: 'info',
+      paid: 'success',
       cancelled: 'danger',
     }
     return variants[status] || 'default'
