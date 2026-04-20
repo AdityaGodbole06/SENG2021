@@ -113,6 +113,8 @@ export class ApiClient {
   }
 }
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+
 // Create client instances for each API (all pointing to local backend proxy)
 export const createApiClients = (
   tokens: ApiTokens,
@@ -122,21 +124,18 @@ export const createApiClients = (
     despatchToken?: string
   }
 ) => ({
-  // Local backend proxy that forwards to external APIs
   authApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/auth',
+    baseURL: `${API_BASE}/api/auth`,
     authType: 'bearer',
     timeout: 60000,
   }),
-  // Local order management
   ordersApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/orders',
+    baseURL: `${API_BASE}/api/orders`,
     token: tokens.ordersApi,
     authType: 'bearer',
   }),
-  // External API proxy for orders
   ordersProxyApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/proxy',
+    baseURL: `${API_BASE}/api/proxy`,
     token: tokens.ordersApi,
     authType: 'bearer',
     credentials: {
@@ -144,7 +143,7 @@ export const createApiClients = (
     },
   }),
   dispatchApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/despatch-advices',
+    baseURL: `${API_BASE}/api/despatch-advices`,
     token: tokens.dispatchApi,
     authType: 'bearer',
     credentials: {
@@ -152,12 +151,12 @@ export const createApiClients = (
     },
   }),
   receiptApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/receipt-advices',
+    baseURL: `${API_BASE}/api/receipt-advices`,
     token: tokens.dispatchApi,
     authType: 'bearer',
   }),
   invoicesApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/proxy',
+    baseURL: `${API_BASE}/api/proxy`,
     token: tokens.invoicesApi,
     authType: 'bearer',
     credentials: {
@@ -165,17 +164,17 @@ export const createApiClients = (
     },
   }),
   adjustmentApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/order-adjustments',
+    baseURL: `${API_BASE}/api/order-adjustments`,
     token: tokens.dispatchApi,
     authType: 'bearer',
   }),
   cancellationApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api/fulfilment-cancellations',
+    baseURL: `${API_BASE}/api/fulfilment-cancellations`,
     token: tokens.ordersApi,
     authType: 'bearer',
   }),
   auditApi: new ApiClient({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: `${API_BASE}/api`,
     token: tokens.ordersApi,
     authType: 'bearer',
   }),
