@@ -14,6 +14,7 @@ const AuditLogSchema = new mongoose.Schema({
       'UPDATE_ORDER',
       'DELETE_ORDER',
       'CREATE_DESPATCH',
+      'UPDATE_DESPATCH_STATUS',
       'SUBMIT_RECEIPT',
       'REQUEST_ADJUSTMENT',
       'CANCEL_FULFILMENT',
