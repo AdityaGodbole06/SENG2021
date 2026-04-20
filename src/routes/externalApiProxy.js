@@ -325,4 +325,17 @@ router.get('/invoices/:id/xml', async (req, res) => {
   }
 });
 
+router.delete('/invoices/:id', async (req, res) => {
+  try {
+    const invoice = await Invoice.findByIdAndDelete(req.params.id);
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+    res.json({ message: 'Invoice deleted', id: req.params.id });
+  } catch (error) {
+    console.error('Invoice delete error:', error.message);
+    res.status(500).json({ error: 'Failed to delete invoice', details: error.message });
+  }
+});
+
 module.exports = router;

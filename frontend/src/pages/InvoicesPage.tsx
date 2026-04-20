@@ -68,7 +68,7 @@ const InvoicesPage: React.FC = () => {
           alert('Failed to delete invoice')
         }
       } catch (err) {
-        alert('Error deleting invoice')
+        alert(err instanceof Error ? err.message : 'Error deleting invoice')
         console.error(err)
       }
     }
