@@ -223,7 +223,7 @@ router.put('/:orderNumber', async (req, res) => {
   }
 
   try {
-    const { buyerParty, sellerParty, amount, orderDate, deliveryDate } = req.body;
+    const { buyerParty, sellerParty, amount, orderDate, deliveryDate, status } = req.body;
 
     const order = await Order.findOne({
       orderNumber: req.params.orderNumber,
@@ -266,6 +266,16 @@ router.put('/:orderNumber', async (req, res) => {
       changes.deliveryDate = deliveryDate;
       oldValues.deliveryDate = order.deliveryDate;
       order.deliveryDate = deliveryDate;
+    }
+
+    const validStatuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+    if (status && status !== order.status) {
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      }
+      changes.status = status;
+      oldValues.status = order.status;
+      order.status = status;
     }
 
     // Regenerate XML if any changes were made
