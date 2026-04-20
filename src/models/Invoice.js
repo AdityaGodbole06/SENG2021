@@ -14,6 +14,8 @@ const invoiceSchema = new mongoose.Schema(
       enum: ['unpaid', 'paid', 'overdue', 'cancelled'],
       default: 'unpaid',
     },
+    gptlessId: { type: String },
+    xmlDocument: { type: String },
   },
   { timestamps: true }
 );

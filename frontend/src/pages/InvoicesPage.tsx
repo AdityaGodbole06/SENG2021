@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Download, Trash2, Eye } from 'lucide-react'
+import { Plus, Download, Trash2 } from 'lucide-react'
 import { Invoice } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { SlideOver } from '@/components/ui/SlideOver'
 import { useAuth } from '@/context/AuthContext'
 import { createApiClients } from '@/services/apiClient'
 import { invoicesService } from '@/services/invoicesService'
@@ -18,6 +19,7 @@ const InvoicesPage: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [slideOverInvoice, setSlideOverInvoice] = useState<Invoice | null>(null)
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -53,14 +55,15 @@ const InvoicesPage: React.FC = () => {
     return variants[status]
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
         const clients = createApiClients(tokens || {}, apiCredentials || {})
         const success = await invoicesService.deleteInvoice(clients, id)
         if (success) {
           setInvoices(invoices.filter(i => i.id !== id))
-          alert('Invoice deleted successfully')
+          if (slideOverInvoice?.id === id) setSlideOverInvoice(null)
         } else {
           alert('Failed to delete invoice')
         }
@@ -71,25 +74,34 @@ const InvoicesPage: React.FC = () => {
     }
   }
 
-  const handleDownload = (invoice: Invoice) => {
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Invoice>
-  <InvoiceNumber>${invoice.invoiceNumber}</InvoiceNumber>
-  <OrderId>${invoice.orderId}</OrderId>
-  <BuyerParty>${invoice.buyerParty}</BuyerParty>
-  <SellerParty>${invoice.sellerParty}</SellerParty>
-  <TotalAmount>${invoice.totalAmount}</TotalAmount>
-  <InvoiceDate>${invoice.invoiceDate}</InvoiceDate>
-  <DueDate>${invoice.dueDate}</DueDate>
-  <Status>${invoice.status}</Status>
-</Invoice>`
-
-    const blob = new Blob([xml], { type: 'application/xml' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${invoice.invoiceNumber}.xml`
-    a.click()
+  const handleDownload = async (invoice: Invoice, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    try {
+      const headers: Record<string, string> = {}
+      if (apiCredentials?.gptlessToken) {
+        headers['X-Gptless-Token'] = apiCredentials.gptlessToken
+      }
+      const response = await fetch(
+        `http://localhost:3000/api/proxy/invoices/${invoice.id}/xml`,
+        { headers }
+      )
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        alert(err.error || 'Failed to download invoice XML')
+        return
+      }
+      const xml = await response.text()
+      const blob = new Blob([xml], { type: 'application/xml' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${invoice.invoiceNumber}.xml`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Error downloading invoice XML')
+      console.error(err)
+    }
   }
 
   const handleCreateInvoice = async (formData: any) => {
@@ -201,7 +213,8 @@ const InvoicesPage: React.FC = () => {
               {filteredInvoices.map(invoice => (
                 <tr
                   key={invoice.id}
-                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
+                  onClick={() => setSlideOverInvoice(invoice)}
+                  className='border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer'
                 >
                   <td className='px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-50'>
                     {invoice.invoiceNumber}
@@ -210,7 +223,9 @@ const InvoicesPage: React.FC = () => {
                     {invoice.orderId}
                   </td>
                   <td className='px-6 py-4 text-sm text-slate-600 dark:text-slate-400'>
-                    {invoice.buyerParty}
+                    {typeof invoice.buyerParty === 'string'
+                      ? invoice.buyerParty
+                      : (invoice.buyerParty as any)?.name || '—'}
                   </td>
                   <td className='px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-50'>
                     ${invoice.totalAmount.toLocaleString()}
@@ -223,28 +238,23 @@ const InvoicesPage: React.FC = () => {
                       {invoice.status}
                     </Badge>
                   </td>
-                  <td className='px-6 py-4 text-sm flex gap-2'>
-                    <button
-                      onClick={() => alert(`Invoice: ${invoice.invoiceNumber}\nAmount: $${invoice.totalAmount}\nStatus: ${invoice.status}`)}
-                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
-                      title='View invoice'
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDownload(invoice)}
-                      className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
-                      title='Download as XML'
-                    >
-                      <Download size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(invoice.id)}
-                      className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
-                      title='Delete invoice'
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <td className='px-6 py-4 text-sm'>
+                    <div className='flex gap-2' onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleDownload(invoice, e)}
+                        className='p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors'
+                        title='Download as XML'
+                      >
+                        <Download size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(invoice.id, e)}
+                        className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
+                        title='Delete invoice'
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -252,6 +262,84 @@ const InvoicesPage: React.FC = () => {
           </table>
         </div>
       </Card>
+
+      {/* Invoice Detail SlideOver */}
+      <SlideOver
+        isOpen={!!slideOverInvoice}
+        onClose={() => setSlideOverInvoice(null)}
+        title={slideOverInvoice ? `Invoice ${slideOverInvoice.invoiceNumber}` : 'Invoice Details'}
+      >
+        {slideOverInvoice && (
+          <div className='space-y-6'>
+            <div>
+              <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                Invoice Details
+              </h3>
+              <dl className='space-y-3'>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Invoice #</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverInvoice.invoiceNumber}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Status</dt>
+                  <dd><Badge variant={getStatusVariant(slideOverInvoice.status)} size='sm'>{slideOverInvoice.status}</Badge></dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Order ID</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverInvoice.orderId || '—'}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Buyer</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>
+                    {typeof slideOverInvoice.buyerParty === 'string'
+                      ? slideOverInvoice.buyerParty
+                      : (slideOverInvoice.buyerParty as any)?.name || '—'}
+                  </dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Seller</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>
+                    {typeof slideOverInvoice.sellerParty === 'string'
+                      ? slideOverInvoice.sellerParty
+                      : (slideOverInvoice.sellerParty as any)?.name || '—'}
+                  </dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Total</dt>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>${slideOverInvoice.totalAmount.toLocaleString()}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Invoice Date</dt>
+                  <dd className='text-sm text-slate-900 dark:text-slate-50'>{slideOverInvoice.invoiceDate || '—'}</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-sm text-slate-500 dark:text-slate-400'>Due Date</dt>
+                  <dd className='text-sm text-slate-900 dark:text-slate-50'>{slideOverInvoice.dueDate || '—'}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className='flex gap-3 pt-2'>
+              <Button
+                variant='ghost'
+                onClick={() => handleDownload(slideOverInvoice)}
+                className='flex items-center gap-2'
+              >
+                <Download size={16} />
+                Download UBL XML
+              </Button>
+              <Button
+                variant='ghost'
+                onClick={() => handleDelete(slideOverInvoice.id)}
+                className='flex items-center gap-2 text-red-600 hover:text-red-700'
+              >
+                <Trash2 size={16} />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </SlideOver>
 
       {/* Generate Invoice Modal */}
       <CreateInvoiceModal

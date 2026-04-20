@@ -221,6 +221,8 @@ router.post('/invoices', async (req, res) => {
         invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
         dueDate: dueDate ? new Date(dueDate) : null,
         status: 'unpaid',
+        gptlessId,
+        xmlDocument: xmlData || '',
       });
       await savedInvoice.save();
     } catch (saveErr) {
@@ -276,6 +278,49 @@ router.get('/invoices', async (req, res) => {
     res.status(500).json({
       error: 'Failed to fetch invoices',
       details: error.message,
+    });
+  }
+});
+
+// GET /invoices/:id/xml - return stored UBL XML, falling back to GPTless fetch
+router.get('/invoices/:id/xml', async (req, res) => {
+  try {
+    const { gptlessToken } = getCredentialsFromRequest(req);
+    const invoice = await Invoice.findById(req.params.id);
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    if (invoice.xmlDocument) {
+      res.set('Content-Type', 'application/xml');
+      res.set('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.xml"`);
+      return res.send(invoice.xmlDocument);
+    }
+
+    if (!invoice.gptlessId || !gptlessToken) {
+      return res.status(404).json({ error: 'No UBL XML available for this invoice' });
+    }
+
+    const response = await axios.get(
+      `https://api.gptless.au/v1/invoices/${invoice.gptlessId}`,
+      { headers: { APIToken: gptlessToken } }
+    );
+
+    const xml = typeof response.data === 'string' ? response.data : '';
+    if (xml) {
+      invoice.xmlDocument = xml;
+      await invoice.save();
+    }
+
+    res.set('Content-Type', 'application/xml');
+    res.set('Content-Disposition', `attachment; filename="${invoice.invoiceNumber}.xml"`);
+    return res.send(xml);
+  } catch (error) {
+    console.error('Invoice XML fetch error:', error.message);
+    return res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch invoice XML',
+      details: error.response?.data || error.message,
     });
   }
 });

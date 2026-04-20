@@ -35,9 +35,25 @@ export interface DespatchAdvice {
   dispatchDate: string
   deliveryParty: string
   expectedArrival: string
-  status: 'dispatched' | 'in_transit' | 'delivered' | 'delayed' | 'issue'
+  status: 'CREATED' | 'SENT' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED'
   items?: DespatchLineItem[]
   discrepancies?: string[]
+}
+
+export const DISPATCH_STATUS_LABELS: Record<DespatchAdvice['status'], string> = {
+  CREATED: 'Created',
+  SENT: 'Sent',
+  IN_TRANSIT: 'In Transit',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
+}
+
+export const DISPATCH_NEXT_STATES: Record<DespatchAdvice['status'], DespatchAdvice['status'][]> = {
+  CREATED: ['SENT', 'CANCELLED'],
+  SENT: ['IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
+  IN_TRANSIT: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
 }
 
 export interface DespatchLineItem {

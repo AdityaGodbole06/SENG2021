@@ -4,7 +4,15 @@ import { AxiosError } from 'axios'
 
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof AxiosError) {
-    return error.response?.data?.error ?? error.message ?? fallback
+    const data = error.response?.data
+    if (data?.error?.message) {
+      const detail = Array.isArray(data.error.details) && data.error.details.length
+        ? `: ${data.error.details.join(', ')}`
+        : ''
+      return `${data.error.message}${detail}`
+    }
+    if (typeof data?.error === 'string') return data.error
+    return error.message ?? fallback
   }
   if (error instanceof Error) return error.message
   return fallback
@@ -23,7 +31,7 @@ export const dispatchService = {
         deliveryParty: d.deliveryParty,
         dispatchDate: d.dispatchDate?.split('T')[0] ?? '',
         expectedArrival: d.expectedDeliveryDate?.split('T')[0] ?? '',
-        status: 'dispatched' as DespatchAdvice['status'],
+        status: (d.status || 'CREATED') as DespatchAdvice['status'],
         items: d.items,
       }))
     } catch (error) {
@@ -62,6 +70,19 @@ export const dispatchService = {
       return response as DespatchAdvice
     } catch (error) {
       throw new Error(extractErrorMessage(error, 'Failed to update dispatch'))
+    }
+  },
+
+  async updateStatus(
+    clients: ApiClients,
+    id: string,
+    status: DespatchAdvice['status']
+  ): Promise<{ status: DespatchAdvice['status']; previousStatus: DespatchAdvice['status'] }> {
+    try {
+      const response = await clients.dispatchApi.patch(`/${id}/status`, { status })
+      return response as { status: DespatchAdvice['status']; previousStatus: DespatchAdvice['status'] }
+    } catch (error) {
+      throw new Error(extractErrorMessage(error, 'Failed to update dispatch status'))
     }
   },
 

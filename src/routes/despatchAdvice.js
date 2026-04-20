@@ -113,6 +113,83 @@ router.post('/', async (req, res) => {
 });
 
 
+// PATCH /despatch-advices/:dispatchAdviceId/status - manual status progression
+const ALLOWED_TRANSITIONS = {
+  CREATED: ['SENT', 'CANCELLED'],
+  SENT: ['IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
+  IN_TRANSIT: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+router.patch('/:dispatchAdviceId/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'status is required' },
+      });
+    }
+
+    const despatchAdvice = await DespatchAdvice.findOne({
+      dispatchAdviceId: req.params.dispatchAdviceId,
+    });
+
+    if (!despatchAdvice) {
+      return res.status(404).json({
+        error: { code: 'NOT_FOUND', message: 'Despatch Advice not found' },
+      });
+    }
+
+    if (req.party && req.party.role !== 'DESPATCH_PARTY') {
+      return res.status(403).json({
+        error: { code: 'FORBIDDEN', message: 'Only a DESPATCH_PARTY can update dispatch status' },
+      });
+    }
+
+    if (req.party && despatchAdvice.despatchParty.partyId !== req.party.partyId) {
+      return res.status(403).json({
+        error: { code: 'FORBIDDEN', message: 'You can only update dispatches you created' },
+      });
+    }
+
+    const allowed = ALLOWED_TRANSITIONS[despatchAdvice.status] || [];
+    if (!allowed.includes(status)) {
+      return res.status(409).json({
+        error: {
+          code: 'INVALID_TRANSITION',
+          message: `Cannot transition from ${despatchAdvice.status} to ${status}`,
+          details: [`Allowed next states: ${allowed.join(', ') || 'none'}`],
+        },
+      });
+    }
+
+    const previousStatus = despatchAdvice.status;
+    despatchAdvice.status = status;
+    await despatchAdvice.save();
+
+    await auditService.log(
+      'UPDATE_DESPATCH_STATUS',
+      'DESPATCH',
+      despatchAdvice.dispatchAdviceId,
+      req.party?.partyId || 'SYSTEM',
+      { from: previousStatus, to: status },
+      `Despatch ${despatchAdvice.dispatchAdviceId} status: ${previousStatus} → ${status}`
+    );
+
+    return res.status(200).json({
+      dispatchAdviceId: despatchAdvice.dispatchAdviceId,
+      status: despatchAdvice.status,
+      previousStatus,
+    });
+  } catch (err) {
+    console.error('Error updating despatch status:', err);
+    return res.status(500).json({
+      error: { code: 'INTERNAL_ERROR', message: err.message },
+    });
+  }
+});
+
 router.get('/:dispatchAdviceId', async (req, res) => {
   const despatchAdvice = await DespatchAdvice.findOne({ dispatchAdviceId: req.params.dispatchAdviceId });
 

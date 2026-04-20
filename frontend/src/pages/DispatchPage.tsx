@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Trash2, Download } from 'lucide-react'
-import { DespatchAdvice } from '@/types'
+import { DespatchAdvice, DISPATCH_STATUS_LABELS, DISPATCH_NEXT_STATES } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -51,13 +51,27 @@ const DispatchPage: React.FC = () => {
     status: DespatchAdvice['status']
   ): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
     const variants: Record<DespatchAdvice['status'], 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-      dispatched: 'info',
-      in_transit: 'default',
-      delivered: 'success',
-      delayed: 'warning',
-      issue: 'danger',
+      CREATED: 'default',
+      SENT: 'info',
+      IN_TRANSIT: 'warning',
+      DELIVERED: 'success',
+      CANCELLED: 'danger',
     }
-    return variants[status]
+    return variants[status] || 'default'
+  }
+
+  const handleStatusChange = async (next: DespatchAdvice['status']) => {
+    if (!slideOverDispatch) return
+    if (!confirm(`Update dispatch ${slideOverDispatch.despatchNumber} to ${DISPATCH_STATUS_LABELS[next]}?`)) return
+    try {
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
+      const result = await dispatchService.updateStatus(clients, slideOverDispatch.id, next)
+      const updated = { ...slideOverDispatch, status: result.status }
+      setSlideOverDispatch(updated)
+      setDispatches(prev => prev.map(d => d.id === updated.id ? updated : d))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update status')
+    }
   }
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -169,11 +183,11 @@ const DispatchPage: React.FC = () => {
             className='px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
           >
             <option value=''>All Status</option>
-            <option value='dispatched'>Dispatched</option>
-            <option value='in_transit'>In Transit</option>
-            <option value='delivered'>Delivered</option>
-            <option value='delayed'>Delayed</option>
-            <option value='issue'>Issue</option>
+            <option value='CREATED'>Created</option>
+            <option value='SENT'>Sent</option>
+            <option value='IN_TRANSIT'>In Transit</option>
+            <option value='DELIVERED'>Delivered</option>
+            <option value='CANCELLED'>Cancelled</option>
           </select>
         </CardBody>
       </Card>
@@ -220,7 +234,7 @@ const DispatchPage: React.FC = () => {
                   </td>
                   <td className='px-6 py-4 text-sm'>
                     <Badge variant={getStatusVariant(dispatch.status)} size='sm'>
-                      {dispatch.status.replace('_', ' ')}
+                      {DISPATCH_STATUS_LABELS[dispatch.status] || dispatch.status}
                     </Badge>
                   </td>
                   <td className='px-6 py-4 text-sm'>
@@ -269,7 +283,7 @@ const DispatchPage: React.FC = () => {
                 </div>
                 <div className='flex justify-between'>
                   <dt className='text-sm text-slate-500 dark:text-slate-400'>Status</dt>
-                  <dd><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{slideOverDispatch.status.replace('_', ' ')}</Badge></dd>
+                  <dd><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{DISPATCH_STATUS_LABELS[slideOverDispatch.status] || slideOverDispatch.status}</Badge></dd>
                 </div>
                 <div className='flex justify-between'>
                   <dt className='text-sm text-slate-500 dark:text-slate-400'>Order Reference</dt>
@@ -277,7 +291,12 @@ const DispatchPage: React.FC = () => {
                 </div>
                 <div className='flex justify-between'>
                   <dt className='text-sm text-slate-500 dark:text-slate-400'>Delivery Party</dt>
-                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{slideOverDispatch.deliveryParty || '—'}</dd>
+                  <dd className='text-sm font-medium text-slate-900 dark:text-slate-50'>{(() => {
+                    const dp: any = slideOverDispatch.deliveryParty
+                    if (!dp) return '—'
+                    if (typeof dp === 'string') return dp
+                    return dp.name || dp.partyId || '—'
+                  })()}</dd>
                 </div>
                 <div className='flex justify-between'>
                   <dt className='text-sm text-slate-500 dark:text-slate-400'>Dispatch Date</dt>
@@ -298,22 +317,22 @@ const DispatchPage: React.FC = () => {
                     Items
                   </h3>
                   <div className='space-y-2'>
-                    {slideOverDispatch.items.map((item, idx) => (
+                    {slideOverDispatch.items.map((item: any, idx) => (
                       <div key={idx} className='p-3 rounded-md bg-slate-50 dark:bg-slate-800'>
                         <div className='flex justify-between text-sm'>
-                          <span className='text-slate-500 dark:text-slate-400'>Line ref</span>
-                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.orderLineRef}</span>
+                          <span className='text-slate-500 dark:text-slate-400'>SKU</span>
+                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.sku || item.orderLineRef || '—'}</span>
                         </div>
-                        <div className='flex justify-between text-sm mt-1'>
-                          <span className='text-slate-500 dark:text-slate-400'>Delivered qty</span>
-                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.deliveredQuantity}</span>
-                        </div>
-                        {item.backorderQuantity !== undefined && (
+                        {item.description && (
                           <div className='flex justify-between text-sm mt-1'>
-                            <span className='text-slate-500 dark:text-slate-400'>Backorder qty</span>
-                            <span className='font-medium text-slate-900 dark:text-slate-50'>{item.backorderQuantity}</span>
+                            <span className='text-slate-500 dark:text-slate-400'>Description</span>
+                            <span className='font-medium text-slate-900 dark:text-slate-50'>{item.description}</span>
                           </div>
                         )}
+                        <div className='flex justify-between text-sm mt-1'>
+                          <span className='text-slate-500 dark:text-slate-400'>Quantity</span>
+                          <span className='font-medium text-slate-900 dark:text-slate-50'>{item.quantity ?? item.deliveredQuantity ?? '—'} {item.uom || ''}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -333,6 +352,29 @@ const DispatchPage: React.FC = () => {
                       <li key={idx} className='text-sm text-red-600 dark:text-red-400'>{d}</li>
                     ))}
                   </ul>
+                </div>
+              </>
+            )}
+
+            {isSupplier && DISPATCH_NEXT_STATES[slideOverDispatch.status]?.length > 0 && (
+              <>
+                <hr className='border-slate-200 dark:border-slate-700' />
+                <div>
+                  <h3 className='text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3'>
+                    Update Status
+                  </h3>
+                  <div className='flex flex-wrap gap-2'>
+                    {DISPATCH_NEXT_STATES[slideOverDispatch.status].map(next => (
+                      <Button
+                        key={next}
+                        variant={next === 'CANCELLED' ? 'ghost' : 'primary'}
+                        onClick={() => handleStatusChange(next)}
+                        className={next === 'CANCELLED' ? 'text-red-600 hover:text-red-700' : ''}
+                      >
+                        Mark as {DISPATCH_STATUS_LABELS[next]}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}

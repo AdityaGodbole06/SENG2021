@@ -56,19 +56,19 @@ const ReceiptAdvicePage: React.FC = () => {
     status: DespatchAdvice['status']
   ): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
     const map: Record<DespatchAdvice['status'], 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-      dispatched: 'info',
-      in_transit: 'default',
-      delivered: 'success',
-      delayed: 'warning',
-      issue: 'danger',
+      CREATED: 'default',
+      SENT: 'info',
+      IN_TRANSIT: 'warning',
+      DELIVERED: 'success',
+      CANCELLED: 'danger',
     }
-    return map[status]
+    return map[status] || 'default'
   }
 
   const handleReceiptSubmitted = (receipt: ReceiptAdvice) => {
     setReceipts(prev => [receipt, ...prev])
     setDispatches(prev =>
-      prev.map(d => d.id === receipt.dispatchAdviceId ? { ...d, status: 'delivered' as const } : d)
+      prev.map(d => d.id === receipt.dispatchAdviceId ? { ...d, status: 'DELIVERED' as const } : d)
     )
     setSelectedDispatch(null)
   }
@@ -105,7 +105,7 @@ ${receipt.receivedItems.map(i => `    <Item>
           </p>
         </div>
         {isBuyer && (
-          <Button onClick={() => setSelectedDispatch({ id: '', despatchNumber: '', orderRef: '', dispatchDate: '', expectedArrival: '', status: 'dispatched', deliveryParty: '' })} disabled={loading}>
+          <Button onClick={() => setSelectedDispatch({ id: '', despatchNumber: '', orderRef: '', dispatchDate: '', expectedArrival: '', status: 'SENT', deliveryParty: '' })} disabled={loading}>
             <Plus size={18} className='mr-2' />
             Submit Receipt Advice
           </Button>
@@ -188,7 +188,7 @@ ${receipt.receivedItems.map(i => `    <Item>
                   </td>
                   <td className='px-6 py-4 text-sm'>
                     <Badge variant={getStatusVariant(dispatch.status)} size='sm'>
-                      {dispatch.status.replace('_', ' ')}
+                      {dispatch.status.replace('_', ' ').toLowerCase()}
                     </Badge>
                   </td>
                   {isBuyer && (
@@ -197,7 +197,7 @@ ${receipt.receivedItems.map(i => `    <Item>
                         <span className='flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium'>
                           <CheckCircle size={14} /> Submitted
                         </span>
-                      ) : dispatch.status === 'delivered' ? (
+                      ) : dispatch.status === 'DELIVERED' || dispatch.status === 'CANCELLED' ? (
                         <span className='text-xs text-slate-400'>Already delivered</span>
                       ) : (
                         <button
@@ -305,7 +305,7 @@ ${receipt.receivedItems.map(i => `    <Item>
               ))}
               <div>
                 <dt className='text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400'>Status</dt>
-                <dd className='mt-1'><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{slideOverDispatch.status.replace('_', ' ')}</Badge></dd>
+                <dd className='mt-1'><Badge variant={getStatusVariant(slideOverDispatch.status)} size='sm'>{slideOverDispatch.status.replace('_', ' ').toLowerCase()}</Badge></dd>
               </div>
             </dl>
             {slideOverDispatch.items && slideOverDispatch.items.length > 0 && (
