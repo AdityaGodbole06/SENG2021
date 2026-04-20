@@ -270,12 +270,6 @@ router.patch('/invoices/:id', async (req, res) => {
 
 router.get('/invoices', async (req, res) => {
   try {
-    const { gptlessToken } = getCredentialsFromRequest(req);
-
-    if (!gptlessToken) {
-      return res.status(401).json({ error: 'Missing GPTless credentials' });
-    }
-
     // Filter invoices by the authenticated party
     const filter = req.party
       ? { $or: [{ buyerParty: req.party.partyId }, { sellerParty: req.party.partyId },

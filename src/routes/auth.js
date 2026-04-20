@@ -140,7 +140,7 @@ router.post('/login', async (req, res) => {
       // Include API credentials for frontend to use in proxy
       apiCredentials: {
         chalksnifferKey: party.chalksnifferKey,
-        gptlessToken: party.gptlessToken || process.env.GPTLESS_DEV_TOKEN,
+        gptlessToken: party.gptlessToken || process.env.GPTLESS_TOKEN,
       },
     });
   } catch (err) {
