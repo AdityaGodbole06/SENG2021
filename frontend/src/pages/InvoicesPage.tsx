@@ -55,6 +55,17 @@ const InvoicesPage: React.FC = () => {
     return variants[status]
   }
 
+  const handleMarkAsPaid = async (invoice: Invoice) => {
+    try {
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
+      await invoicesService.markAsPaid(clients, invoice.id)
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, status: 'paid' } : i))
+      setSlideOverInvoice(prev => prev?.id === invoice.id ? { ...prev, status: 'paid' } : prev)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to mark as paid')
+    }
+  }
+
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (confirm('Are you sure you want to delete this invoice?')) {
@@ -81,8 +92,9 @@ const InvoicesPage: React.FC = () => {
       if (apiCredentials?.gptlessToken) {
         headers['X-Gptless-Token'] = apiCredentials.gptlessToken
       }
+      const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
       const response = await fetch(
-        `http://localhost:3000/api/proxy/invoices/${invoice.id}/xml`,
+        `${API_BASE}/api/proxy/invoices/${invoice.id}/xml`,
         { headers }
       )
       if (!response.ok) {
@@ -319,7 +331,15 @@ const InvoicesPage: React.FC = () => {
               </dl>
             </div>
 
-            <div className='flex gap-3 pt-2'>
+            <div className='flex gap-3 pt-2 flex-wrap'>
+              {slideOverInvoice.status === 'unpaid' && (
+                <Button
+                  onClick={() => handleMarkAsPaid(slideOverInvoice)}
+                  className='flex items-center gap-2'
+                >
+                  Mark as Paid
+                </Button>
+              )}
               <Button
                 variant='ghost'
                 onClick={() => handleDownload(slideOverInvoice)}
