@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Download } from 'lucide-react'
+import { Plus, Download } from 'lucide-react'
 import { DespatchAdvice, DISPATCH_STATUS_LABELS, DISPATCH_NEXT_STATES } from '@/types'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -22,20 +22,21 @@ const DispatchPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [slideOverDispatch, setSlideOverDispatch] = useState<DespatchAdvice | null>(null)
 
-  useEffect(() => {
-    const fetchDispatches = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const clients = createApiClients(tokens || {}, apiCredentials || {})
-        const data = await dispatchService.getDispatches(clients)
-        setDispatches(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dispatches')
-      } finally {
-        setLoading(false)
-      }
+  const fetchDispatches = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const clients = createApiClients(tokens || {}, apiCredentials || {})
+      const data = await dispatchService.getDispatches(clients)
+      setDispatches(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dispatches')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchDispatches()
   }, [tokens, apiCredentials])
 
@@ -71,20 +72,6 @@ const DispatchPage: React.FC = () => {
       setDispatches(prev => prev.map(d => d.id === updated.id ? updated : d))
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update status')
-    }
-  }
-
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (confirm('Are you sure you want to delete this dispatch?')) {
-      try {
-        const clients = createApiClients(tokens || {}, apiCredentials || {})
-        await dispatchService.deleteDispatch(clients, id)
-        setDispatches(dispatches.filter(d => d.id !== id))
-        if (slideOverDispatch?.id === id) setSlideOverDispatch(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to delete dispatch')
-      }
     }
   }
 
@@ -129,8 +116,8 @@ const DispatchPage: React.FC = () => {
         },
       ],
     }
-    const newDispatch = await dispatchService.createDispatch(clients, payload as any)
-    setDispatches(prev => [...prev, newDispatch])
+    await dispatchService.createDispatch(clients, payload as any)
+    await fetchDispatches()
     setIsCreateModalOpen(false)
   }
 
@@ -246,15 +233,6 @@ const DispatchPage: React.FC = () => {
                       >
                         <Download size={16} />
                       </button>
-                      {isSupplier && (
-                        <button
-                          onClick={(e) => handleDelete(dispatch.id, e)}
-                          className='p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors text-red-600'
-                          title='Delete dispatch'
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -388,18 +366,6 @@ const DispatchPage: React.FC = () => {
                 <Download size={16} />
                 Download XML
               </Button>
-              {isSupplier && (
-                <Button
-                  variant='ghost'
-                  onClick={() => {
-                    handleDelete(slideOverDispatch.id, { stopPropagation: () => {} } as any)
-                  }}
-                  className='flex items-center gap-2 text-red-600 hover:text-red-700'
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </Button>
-              )}
             </div>
           </div>
         )}
