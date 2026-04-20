@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 const ReceiptAdvice = require('../models/ReceiptAdvice');
 const DespatchAdvice = require('../models/DespatchAdvice');
+const Order = require('../models/Order');
 const OrderAdjustment = require('../models/OrderAdjustment');
 const { generateReceiptAdviceXML } = require('../utils/ublGenerator');
 const AuditService = require('../services/auditService');
@@ -131,6 +132,14 @@ router.post('/', async (req, res) => {
 
   despatchAdvice.status = 'DELIVERED';
   await despatchAdvice.save();
+
+  // Update linked order status to delivered
+  if (despatchAdvice.externalRef) {
+    await Order.findOneAndUpdate(
+      { orderNumber: despatchAdvice.externalRef, status: { $nin: ['delivered', 'cancelled'] } },
+      { status: 'delivered' }
+    );
+  }
 
   res.set('Content-Type', 'application/xml');
   return res.status(201).send(xmlDocument);
