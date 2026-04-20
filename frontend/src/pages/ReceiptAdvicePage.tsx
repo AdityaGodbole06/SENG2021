@@ -294,7 +294,7 @@ ${receipt.receivedItems.map(i => `    <Item>
               {[
                 ['Dispatch #', slideOverDispatch.despatchNumber],
                 ['Order Ref', slideOverDispatch.orderRef || '—'],
-                ['Delivery Party', slideOverDispatch.deliveryParty || '—'],
+                ['Delivery Party', (typeof slideOverDispatch.deliveryParty === 'object' ? (slideOverDispatch.deliveryParty as any)?.name || (slideOverDispatch.deliveryParty as any)?.partyId : slideOverDispatch.deliveryParty) || '—'],
                 ['Dispatch Date', slideOverDispatch.dispatchDate || '—'],
                 ['Expected Arrival', slideOverDispatch.expectedArrival || '—'],
               ].map(([label, value]) => (
