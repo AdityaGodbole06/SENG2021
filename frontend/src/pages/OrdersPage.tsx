@@ -15,6 +15,23 @@ import { receiptAdviceService } from '@/services/receiptAdviceService'
 import { invoicesService } from '@/services/invoicesService'
 import { DespatchAdvice, ReceiptAdvice, Invoice } from '@/types'
 
+const generateOrderNumber = (orders: Order[]): string => {
+  const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+  const prefix = `ORD-${today}-`
+  const existing = orders
+    .map(o => o.orderNumber)
+    .filter(n => n.startsWith(prefix))
+    .map(n => parseInt(n.slice(prefix.length)) || 0)
+  const next = existing.length > 0 ? Math.max(...existing) + 1 : 1
+  return `${prefix}${String(next).padStart(3, '0')}`
+}
+
+const addDays = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
 const OrdersPage: React.FC = () => {
   const { tokens, apiCredentials, role } = useAuth()
   const isSupplier = role === 'supplier'
@@ -119,21 +136,42 @@ const OrdersPage: React.FC = () => {
 
   const validateCreateForm = (): Record<string, string> => {
     const errs: Record<string, string> = {}
+    const today = new Date().toISOString().split('T')[0]
     if (!formData.orderNumber.trim()) errs.orderNumber = 'Order number is required'
     if (!formData.buyerParty.trim()) errs.buyerParty = 'Buyer party is required'
     if (!formData.sellerParty.trim()) errs.sellerParty = 'Seller party is required'
-    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) < 0) {
-      errs.amount = 'A valid amount is required'
+    const amount = parseFloat(formData.amount)
+    if (!formData.amount || isNaN(amount) || amount <= 0) {
+      errs.amount = 'Amount must be greater than 0'
+    }
+    if (formData.orderDate && formData.orderDate < today) {
+      errs.orderDate = 'Order date cannot be in the past'
+    }
+    if (formData.deliveryDate) {
+      if (formData.deliveryDate < today) {
+        errs.deliveryDate = 'Delivery date cannot be in the past'
+      } else if (formData.orderDate && formData.deliveryDate < formData.orderDate) {
+        errs.deliveryDate = 'Delivery date must be after order date'
+      }
     }
     return errs
   }
 
   const validateEditForm = (): Record<string, string> => {
     const errs: Record<string, string> = {}
+    const today = new Date().toISOString().split('T')[0]
     if (!formData.buyerParty.trim()) errs.buyerParty = 'Buyer party is required'
     if (!formData.sellerParty.trim()) errs.sellerParty = 'Seller party is required'
-    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) < 0) {
-      errs.amount = 'A valid amount is required'
+    const amount = parseFloat(formData.amount)
+    if (!formData.amount || isNaN(amount) || amount <= 0) {
+      errs.amount = 'Amount must be greater than 0'
+    }
+    if (formData.deliveryDate) {
+      if (formData.deliveryDate < today) {
+        errs.deliveryDate = 'Delivery date cannot be in the past'
+      } else if (formData.orderDate && formData.deliveryDate < formData.orderDate) {
+        errs.deliveryDate = 'Delivery date must be after order date'
+      }
     }
     return errs
   }
@@ -334,7 +372,11 @@ const OrdersPage: React.FC = () => {
             <h1 className='text-3xl font-bold text-slate-900 dark:text-slate-50'>Orders</h1>
             <p className='text-slate-600 dark:text-slate-400'>Manage your orders and track fulfillment</p>
           </div>
-          <Button onClick={() => { setIsCreateModalOpen(true); setCreateFieldErrors({}) }} className='flex items-center gap-2'>
+          <Button onClick={() => {
+            setFormData(prev => ({ ...prev, orderNumber: generateOrderNumber(orders) }))
+            setIsCreateModalOpen(true)
+            setCreateFieldErrors({})
+          }} className='flex items-center gap-2'>
             <Plus size={20} />
             Create Order
           </Button>
@@ -599,20 +641,37 @@ const OrdersPage: React.FC = () => {
         title='Create New Order'
       >
         <div className='min-w-96'>
+          <datalist id='buyer-suggestions'>
+            {[...new Set(orders.map(o => o.buyerParty))].map(p => <option key={p} value={p} />)}
+          </datalist>
+          <datalist id='seller-suggestions'>
+            {[...new Set(orders.map(o => o.sellerParty))].map(p => <option key={p} value={p} />)}
+          </datalist>
+
           <div className='space-y-4'>
             <div>
               <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
                 Order Number *
               </label>
-              <Input
-                value={formData.orderNumber}
-                onChange={(e) => {
-                  setFormData({ ...formData, orderNumber: e.target.value })
-                  setCreateFieldErrors(prev => ({ ...prev, orderNumber: '' }))
-                }}
-                placeholder='ORD-001'
-                error={createFieldErrors.orderNumber}
-              />
+              <div className='flex gap-2'>
+                <Input
+                  value={formData.orderNumber}
+                  onChange={(e) => {
+                    setFormData({ ...formData, orderNumber: e.target.value })
+                    setCreateFieldErrors(prev => ({ ...prev, orderNumber: '' }))
+                  }}
+                  placeholder='ORD-001'
+                  error={createFieldErrors.orderNumber}
+                />
+                <Button
+                  variant='ghost'
+                  onClick={() => setFormData(prev => ({ ...prev, orderNumber: generateOrderNumber(orders) }))}
+                  className='shrink-0 text-xs px-3'
+                  title='Auto-generate'
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -627,6 +686,7 @@ const OrdersPage: React.FC = () => {
                 }}
                 placeholder='Buyer company name'
                 error={createFieldErrors.buyerParty}
+                list='buyer-suggestions'
               />
             </div>
 
@@ -642,6 +702,7 @@ const OrdersPage: React.FC = () => {
                 }}
                 placeholder='Seller company name'
                 error={createFieldErrors.sellerParty}
+                list='seller-suggestions'
               />
             </div>
 
@@ -651,6 +712,8 @@ const OrdersPage: React.FC = () => {
               </label>
               <Input
                 type='number'
+                min='0.01'
+                step='0.01'
                 value={formData.amount}
                 onChange={(e) => {
                   setFormData({ ...formData, amount: e.target.value })
@@ -668,18 +731,32 @@ const OrdersPage: React.FC = () => {
               <Input
                 type='date'
                 value={formData.orderDate}
-                onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const newDate = e.target.value
+                  setFormData(prev => ({
+                    ...prev,
+                    orderDate: newDate,
+                    deliveryDate: prev.deliveryDate || addDays(newDate, 7),
+                  }))
+                }}
               />
             </div>
 
             <div>
               <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
                 Delivery Date
+                <span className='ml-2 text-xs text-slate-400 font-normal'>auto-set to +7 days from order date</span>
               </label>
               <Input
                 type='date'
                 value={formData.deliveryDate}
-                onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
+                min={formData.orderDate || new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  setFormData({ ...formData, deliveryDate: e.target.value })
+                  setCreateFieldErrors(prev => ({ ...prev, deliveryDate: '' }))
+                }}
+                error={createFieldErrors.deliveryDate}
               />
             </div>
 

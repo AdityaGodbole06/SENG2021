@@ -415,11 +415,16 @@ const SubmitReceiptModal: React.FC<SubmitReceiptModalProps> = ({
 
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {}
+    const today = new Date().toISOString().split('T')[0]
     if (!formData.dispatchAdviceId.trim()) errs.dispatchAdviceId = 'Dispatch Advice ID is required'
-    if (!formData.receiptDate) errs.receiptDate = 'Receipt date is required'
+    if (!formData.receiptDate) {
+      errs.receiptDate = 'Receipt date is required'
+    } else if (formData.receiptDate > today) {
+      errs.receiptDate = 'Receipt date cannot be in the future'
+    }
     if (!formData.itemSku.trim()) errs.itemSku = 'SKU is required'
     const qty = parseInt(formData.itemQuantityReceived)
-    if (isNaN(qty) || qty < 0) errs.itemQuantityReceived = 'Quantity must be 0 or more'
+    if (isNaN(qty) || qty < 1) errs.itemQuantityReceived = 'Quantity must be at least 1'
     if (!formData.itemUom.trim()) errs.itemUom = 'Unit of measure is required'
     return errs
   }

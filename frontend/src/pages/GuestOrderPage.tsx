@@ -33,9 +33,29 @@ const GuestOrderPage: React.FC = () => {
   const handleCreateGuestOrder = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const today = new Date().toISOString().split('T')[0]
     if (!formData.orderNumber || !formData.buyerParty || !formData.sellerParty || !formData.amount) {
       setError('Please fill in all required fields')
       return
+    }
+    const amount = parseFloat(formData.amount)
+    if (isNaN(amount) || amount <= 0) {
+      setError('Amount must be greater than 0')
+      return
+    }
+    if (formData.orderDate && formData.orderDate < today) {
+      setError('Order date cannot be in the past')
+      return
+    }
+    if (formData.deliveryDate) {
+      if (formData.deliveryDate < today) {
+        setError('Delivery date cannot be in the past')
+        return
+      }
+      if (formData.orderDate && formData.deliveryDate < formData.orderDate) {
+        setError('Delivery date must be after order date')
+        return
+      }
     }
 
     try {

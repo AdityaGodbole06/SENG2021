@@ -386,13 +386,20 @@ interface CreateDispatchModalProps {
   onSubmit: (data: any) => Promise<void>
 }
 
+const today = () => new Date().toISOString().split('T')[0]
+const addDays = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
 const emptyForm = {
   orderRef: '',
   despatchPartyName: '',
   deliveryPartyId: '',
   deliveryPartyName: '',
-  dispatchDate: '',
-  expectedArrival: '',
+  dispatchDate: today(),
+  expectedArrival: addDays(today(), 3),
   itemSku: '',
   itemDescription: '',
   itemQuantity: '1',
@@ -406,16 +413,35 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const set = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    const value = e.target.value
+    setFormData(prev => {
+      const updated = { ...prev, [key]: value }
+      if (key === 'dispatchDate' && value && !prev.expectedArrival) {
+        updated.expectedArrival = addDays(value, 3)
+      }
+      return updated
+    })
     setFieldErrors(prev => ({ ...prev, [key]: '' }))
   }
 
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {}
+    const today = new Date().toISOString().split('T')[0]
     if (!formData.despatchPartyName.trim()) errs.despatchPartyName = 'Despatch party name is required'
     if (!formData.deliveryPartyId.trim()) errs.deliveryPartyId = 'Delivery party ID is required'
     if (!formData.deliveryPartyName.trim()) errs.deliveryPartyName = 'Delivery party name is required'
-    if (!formData.dispatchDate) errs.dispatchDate = 'Dispatch date is required'
+    if (!formData.dispatchDate) {
+      errs.dispatchDate = 'Dispatch date is required'
+    } else if (formData.dispatchDate < today) {
+      errs.dispatchDate = 'Dispatch date cannot be in the past'
+    }
+    if (formData.expectedArrival) {
+      if (formData.expectedArrival < today) {
+        errs.expectedArrival = 'Expected arrival cannot be in the past'
+      } else if (formData.dispatchDate && formData.expectedArrival < formData.dispatchDate) {
+        errs.expectedArrival = 'Expected arrival must be after dispatch date'
+      }
+    }
     const qty = parseInt(formData.itemQuantity)
     if (isNaN(qty) || qty < 1) errs.itemQuantity = 'Quantity must be at least 1'
     if (!formData.itemUom.trim()) errs.itemUom = 'Unit of measure is required'
@@ -505,12 +531,14 @@ const CreateDispatchModal: React.FC<CreateDispatchModalProps> = ({ isOpen, onClo
         <Input
           label='Dispatch Date *'
           type='date'
+          min={today()}
           {...field('dispatchDate')}
         />
 
         <Input
-          label='Expected Arrival Date'
+          label='Expected Arrival Date (auto-set to +3 days)'
           type='date'
+          min={formData.dispatchDate || today()}
           {...field('expectedArrival')}
         />
 
