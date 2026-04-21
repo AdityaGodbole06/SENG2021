@@ -159,7 +159,15 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    const orders = await Order.find({ partyId: req.party.partyId }).sort({ createdAt: -1 });
+    const pid = req.party.partyId;
+    const pname = req.party.name;
+    const orders = await Order.find({
+      $or: [
+        { partyId: pid },
+        { buyerParty: pid }, { buyerParty: pname },
+        { sellerParty: pid }, { sellerParty: pname },
+      ],
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       total: orders.length,
@@ -188,9 +196,15 @@ router.get('/:orderNumber', async (req, res) => {
   }
 
   try {
+    const pid = req.party.partyId;
+    const pname = req.party.name;
     const order = await Order.findOne({
       orderNumber: req.params.orderNumber,
-      partyId: req.party.partyId,
+      $or: [
+        { partyId: pid },
+        { buyerParty: pid }, { buyerParty: pname },
+        { sellerParty: pid }, { sellerParty: pname },
+      ],
     });
 
     if (!order) {
@@ -225,9 +239,15 @@ router.put('/:orderNumber', async (req, res) => {
   try {
     const { buyerParty, sellerParty, amount, orderDate, deliveryDate, status } = req.body;
 
+    const pid = req.party.partyId;
+    const pname = req.party.name;
     const order = await Order.findOne({
       orderNumber: req.params.orderNumber,
-      partyId: req.party.partyId,
+      $or: [
+        { partyId: pid },
+        { buyerParty: pid }, { buyerParty: pname },
+        { sellerParty: pid }, { sellerParty: pname },
+      ],
     });
 
     if (!order) {
