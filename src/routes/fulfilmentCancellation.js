@@ -13,30 +13,38 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const { 
-      dispatchAdviceId, 
-      requestedByPartyId, 
-      reason 
-    } = req.body;
-    
+    const { dispatchAdviceId, reason } = req.body;
+    const requestedByPartyId = req.party?.partyId;
+
+    if (!dispatchAdviceId || !reason) {
+      return res.status(400).json({
+        message: 'Missing required fields: dispatchAdviceId, reason',
+      });
+    }
+
+    const parentAdvice = await DespatchAdvice.findOne({ dispatchAdviceId });
+
+    if (!parentAdvice) {
+      return res.status(404).json({
+        message: 'DespatchAdvice not found',
+      });
+    }
+
+    if (['DELIVERED', 'CANCELLED'].includes(parentAdvice.status)) {
+      return res.status(409).json({
+        message: `Cannot cancel a despatch advice that is already ${parentAdvice.status}`,
+      });
+    }
+
     const fulfilmentCancellationId = `FC-${uuidv4()}`;
 
-    // Mongoose will automatically trigger validation here 
     const cancellation = new FulfilmentCancellation({
       fulfilmentCancellationId,
       dispatchAdviceId,
       requestedByPartyId,
-      reason
+      reason,
     });
     await cancellation.validate();
-
-    const parentAdvice = await DespatchAdvice.findOne({ dispatchAdviceId });
-    
-    if (!parentAdvice) {
-      return res.status(404).json({ 
-        message: 'DespatchAdvice not found' 
-      });
-    }
 
     const savedCancellation = await cancellation.save();
 

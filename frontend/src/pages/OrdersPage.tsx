@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, Download, Truck } from 'lucide-react'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -37,6 +37,11 @@ const OrdersPage: React.FC = () => {
   const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({})
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({})
 
+  // Autocomplete state for order number field
+  const [autocompleteResults, setAutocompleteResults] = useState<Order[]>([])
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const autocompleteRef = useRef<HTMLDivElement>(null)
+
   const [dispatchForm, setDispatchForm] = useState({
     deliveryPartyId: '',
     deliveryPartyName: '',
@@ -63,6 +68,16 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     fetchOrders()
   }, [tokens, apiCredentials])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
+        setShowAutocomplete(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (!slideOverOrder) {
@@ -136,6 +151,44 @@ const OrdersPage: React.FC = () => {
       errs.amount = 'A valid amount is required'
     }
     return errs
+  }
+
+  const handleOrderNumberChange = (value: string) => {
+    setFormData(prev => ({ ...prev, orderNumber: value }))
+    setCreateFieldErrors(prev => ({ ...prev, orderNumber: '' }))
+
+    if (!value.trim()) {
+      setAutocompleteResults([])
+      setShowAutocomplete(false)
+      return
+    }
+
+    const q = value.toLowerCase()
+    const matches = orders.filter(o =>
+      o.orderNumber.toLowerCase().includes(q) ||
+      o.buyerParty.toLowerCase().includes(q) ||
+      o.sellerParty.toLowerCase().includes(q)
+    ).slice(0, 5)
+
+    setAutocompleteResults(matches)
+    setShowAutocomplete(matches.length > 0)
+  }
+
+  const handleAutofill = (order: Order) => {
+    setFormData(prev => ({
+      ...prev,
+      orderNumber: '',
+      buyerParty: order.buyerParty,
+      sellerParty: order.sellerParty,
+      amount: String(order.amount),
+      orderDate: new Date().toISOString().split('T')[0],
+      deliveryDate: order.deliveryDate
+        ? new Date(order.deliveryDate).toISOString().split('T')[0]
+        : '',
+    }))
+    setAutocompleteResults([])
+    setShowAutocomplete(false)
+    setCreateFieldErrors({})
   }
 
   const handleCreateOrder = async () => {
@@ -595,24 +648,49 @@ const OrdersPage: React.FC = () => {
       {/* Create Order Modal */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => { setIsCreateModalOpen(false); setCreateFieldErrors({}) }}
+        onClose={() => { setIsCreateModalOpen(false); setCreateFieldErrors({}); setShowAutocomplete(false); setAutocompleteResults([]) }}
         title='Create New Order'
       >
         <div className='min-w-96'>
           <div className='space-y-4'>
-            <div>
+            <div className='relative' ref={autocompleteRef}>
               <label className='block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1'>
                 Order Number *
               </label>
               <Input
                 value={formData.orderNumber}
-                onChange={(e) => {
-                  setFormData({ ...formData, orderNumber: e.target.value })
-                  setCreateFieldErrors(prev => ({ ...prev, orderNumber: '' }))
-                }}
-                placeholder='ORD-001'
+                onChange={(e) => handleOrderNumberChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') setShowAutocomplete(false) }}
+                placeholder='ORD-001 or type to search past orders'
                 error={createFieldErrors.orderNumber}
+                autoComplete='off'
               />
+              {showAutocomplete && (
+                <ul className='absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg overflow-hidden'>
+                  {autocompleteResults.map((order) => (
+                    <li
+                      key={order.orderNumber}
+                      className='px-3 py-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors'
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        handleAutofill(order)
+                      }}
+                    >
+                      <div className='flex items-center justify-between gap-2'>
+                        <span className='font-medium text-sm text-slate-900 dark:text-slate-100 truncate'>
+                          {order.orderNumber}
+                        </span>
+                        <span className='text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap'>
+                          ${order.amount.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className='text-xs text-slate-500 dark:text-slate-400 truncate'>
+                        {order.buyerParty} → {order.sellerParty}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div>
