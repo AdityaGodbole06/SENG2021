@@ -21,7 +21,10 @@ router.get('/', async (req, res) => {
 // POST /order-adjustment
 // Only DELIVERY_PARTY can create adjustments
 router.post('/', async (req, res) => {
-    if (req.party?.role !== 'DELIVERY_PARTY') {
+    if (!req.party) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (req.party.role !== 'DELIVERY_PARTY') {
         return res.status(403).json({ error: 'Only a DELIVERY_PARTY can create order adjustments' });
     }
 

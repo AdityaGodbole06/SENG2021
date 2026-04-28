@@ -14,7 +14,8 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const { orderNumber, buyerParty, sellerParty, amount, orderDate, deliveryDate } = req.body;
+    const { orderNumber, buyerParty, sellerParty, orderDate, deliveryDate } = req.body;
+    let { amount } = req.body;
 
     // Validate required fields
     if (!orderNumber || !buyerParty || !sellerParty || amount === undefined) {
@@ -32,6 +33,25 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         error: 'Missing required fields: orderNumber, buyerParty, sellerParty, amount',
       });
+    }
+
+    // Validate amount is a positive number (coerce strings)
+    const parsedAmt = Number(amount);
+    if (isNaN(parsedAmt) || parsedAmt <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    amount = parsedAmt;
+
+    // Validate deliveryDate is not before orderDate
+    if (deliveryDate) {
+      const od = orderDate ? new Date(orderDate) : new Date();
+      const dd = new Date(deliveryDate);
+      if (isNaN(dd.getTime())) {
+        return res.status(400).json({ error: 'deliveryDate is invalid' });
+      }
+      if (dd < od) {
+        return res.status(400).json({ error: 'deliveryDate cannot be before orderDate' });
+      }
     }
 
     // Check if order number already exists
@@ -120,13 +140,33 @@ router.post('/', async (req, res) => {
 // Returns UBL XML without saving to database
 router.post('/guest/create', async (req, res) => {
   try {
-    const { orderNumber, buyerParty, sellerParty, amount, orderDate, deliveryDate } = req.body;
+    const { orderNumber, buyerParty, sellerParty, orderDate, deliveryDate } = req.body;
+    let { amount } = req.body;
 
     // Validate required fields
     if (!orderNumber || !buyerParty || !sellerParty || amount === undefined) {
       return res.status(400).json({
         error: 'Missing required fields: orderNumber, buyerParty, sellerParty, amount',
       });
+    }
+
+    // Validate amount is a positive number (coerce strings)
+    const parsedGuestAmt = Number(amount);
+    if (isNaN(parsedGuestAmt) || parsedGuestAmt <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
+    }
+    amount = parsedGuestAmt;
+
+    // Validate deliveryDate is not before orderDate
+    if (deliveryDate) {
+      const od = orderDate ? new Date(orderDate) : new Date();
+      const dd = new Date(deliveryDate);
+      if (isNaN(dd.getTime())) {
+        return res.status(400).json({ error: 'deliveryDate is invalid' });
+      }
+      if (dd < od) {
+        return res.status(400).json({ error: 'deliveryDate cannot be before orderDate' });
+      }
     }
 
     // Generate UBL XML
@@ -237,7 +277,8 @@ router.put('/:orderNumber', async (req, res) => {
   }
 
   try {
-    const { buyerParty, sellerParty, amount, orderDate, deliveryDate, status } = req.body;
+    const { buyerParty, sellerParty, orderDate, deliveryDate, status } = req.body;
+    let { amount } = req.body;
 
     const pid = req.party.partyId;
     const pname = req.party.name;
@@ -271,6 +312,11 @@ router.put('/:orderNumber', async (req, res) => {
     }
 
     if (amount !== undefined && amount !== order.amount) {
+      const parsedAmount = Number(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ error: 'amount must be a positive number' });
+      }
+      amount = parsedAmount;
       changes.amount = amount;
       oldValues.amount = order.amount;
       order.amount = amount;
@@ -283,6 +329,14 @@ router.put('/:orderNumber', async (req, res) => {
     }
 
     if (deliveryDate && deliveryDate !== order.deliveryDate) {
+      const effectiveOrderDate = (orderDate ? new Date(orderDate) : null) || order.orderDate || new Date();
+      const dd = new Date(deliveryDate);
+      if (isNaN(dd.getTime())) {
+        return res.status(400).json({ error: 'deliveryDate is invalid' });
+      }
+      if (dd < effectiveOrderDate) {
+        return res.status(400).json({ error: 'deliveryDate cannot be before orderDate' });
+      }
       changes.deliveryDate = deliveryDate;
       oldValues.deliveryDate = order.deliveryDate;
       order.deliveryDate = deliveryDate;

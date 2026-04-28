@@ -1,0 +1,491 @@
+  console.log
+    [dotenv@17.3.1] injecting env (2) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (node_modules/dotenv/lib/main.js:139:11)
+
+  console.log
+    Server running on port 3000
+
+      at Server.log (src/app.js:107:11)
+
+  console.log
+    MongoDB connected: 127.0.0.1
+
+      at log (src/config/db.js:5:11)
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+
+  console.log
+    Registering with external APIs...
+
+      at log (src/routes/auth.js:69:13)
+
+  console.log
+    Registering with Chalksniffer...
+
+      at log (src/routes/auth.js:14:13)
+
+  console.log
+    Chalksniffer key obtained
+
+      at log (src/routes/auth.js:17:13)
+
+  console.log
+    Registering with GPTless...
+
+      at log (src/routes/auth.js:25:13)
+
+  console.error
+    GPTless registration error: Request failed with status code 401
+
+    [0m [90m 32 |[39m     console[33m.[39mlog([32m'GPTless token obtained'[39m)[33m;[39m
+     [90m 33 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 34 |[39m     console[33m.[39merror([32m'GPTless registration error:'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 35 |[39m     credentials[33m.[39mgptlessToken [33m=[39m [36mnull[39m[33m;[39m
+     [90m 36 |[39m   }
+     [90m 37 |[39m[0m
+
+      at error (src/routes/auth.js:34:13)
+      at src/routes/auth.js:70:33
+

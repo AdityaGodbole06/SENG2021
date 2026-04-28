@@ -73,6 +73,20 @@ router.post('/', async (req, res) => {
     });
   }
 
+  // Validate expectedDeliveryDate is not before dispatchDate
+  if (expectedDeliveryDate) {
+    const dd = new Date(dispatchDate);
+    const ed = new Date(expectedDeliveryDate);
+    if (isNaN(ed.getTime())) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'expectedDeliveryDate is invalid' } });
+    }
+    if (ed < dd) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'expectedDeliveryDate cannot be before dispatchDate' },
+      });
+    }
+  }
+
   const despatchAdviceId = `DA-${uuidv4()}`;
 
   const xmlDocument = generateDespatchAdviceXML({
@@ -132,6 +146,9 @@ const ALLOWED_TRANSITIONS = {
 };
 
 router.patch('/:dispatchAdviceId/status', async (req, res) => {
+  if (!req.party) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
     const { status } = req.body;
     if (!status) {

@@ -51,6 +51,28 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Validate totalAmount is present and positive
+    const parsedAmount = parseFloat(totalAmount);
+    if (totalAmount === undefined || totalAmount === null || isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'totalAmount must be a positive number' },
+      });
+    }
+
+    // Validate dueDate is not before invoiceDate
+    if (dueDate) {
+      const id = new Date(invoiceDate);
+      const dd = new Date(dueDate);
+      if (isNaN(dd.getTime())) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'dueDate is invalid' } });
+      }
+      if (dd < id) {
+        return res.status(400).json({
+          error: { code: 'VALIDATION_ERROR', message: 'dueDate cannot be before invoiceDate' },
+        });
+      }
+    }
+
     const number = invoiceNumber || `INV-${Date.now()}`;
 
     const invoice = new Invoice({
@@ -98,6 +120,28 @@ router.get('/:id', async (req, res) => {
 // PATCH /api/invoices/:id
 router.patch('/:id', async (req, res) => {
   try {
+    const { totalAmount, dueDate, invoiceDate } = req.body;
+
+    if (totalAmount !== undefined) {
+      const parsed = parseFloat(totalAmount);
+      if (isNaN(parsed) || parsed <= 0) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'totalAmount must be a positive number' } });
+      }
+    }
+
+    if (dueDate) {
+      const existing = await Invoice.findById(req.params.id);
+      if (!existing) return res.status(404).json({ error: 'Invoice not found' });
+      const baseInvoiceDate = invoiceDate ? new Date(invoiceDate) : existing.invoiceDate;
+      const dd = new Date(dueDate);
+      if (isNaN(dd.getTime())) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'dueDate is invalid' } });
+      }
+      if (dd < baseInvoiceDate) {
+        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'dueDate cannot be before invoiceDate' } });
+      }
+    }
+
     const invoice = await Invoice.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },

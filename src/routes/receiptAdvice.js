@@ -34,6 +34,24 @@ router.post('/', async (req, res) => {
     });
   }
 
+  if (!Array.isArray(receivedItems) || receivedItems.length === 0) {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: 'receivedItems must be a non-empty array' },
+    });
+  }
+
+  const receiptDateObj = new Date(receiptDate);
+  if (isNaN(receiptDateObj.getTime())) {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: 'receiptDate is invalid' },
+    });
+  }
+  if (receiptDateObj > new Date()) {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: 'receiptDate cannot be in the future' },
+    });
+  }
+
   const invalidItem = receivedItems.find((item) => item.quantityReceived < 0);
   if (invalidItem) {
     return res.status(422).json({
